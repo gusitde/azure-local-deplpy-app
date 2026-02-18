@@ -20,6 +20,8 @@ dependencies = [
     "azure-identity>=1.15,<2",
     "azure-mgmt-azurestackhci>=8.0,<9",
     "azure-mgmt-resource>=23.0,<24",
+    "flask>=3.0,<4",
+    "flask-socketio>=5.3,<6",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Add Node – Step 2: Existing Cluster{% endblock %}
+{% block content %}
+{% set steps = ["Azure Account", "Existing Cluster", "New Server iDRAC", "Network Config", "Time & NTP"] %}
+{% set current_step = 2 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1">Step 2: Existing Cluster</h3>
+        <p class="text-secondary mb-4">Identify the cluster you want to add a node to. This can be a multi-node or single-node cluster.</p>
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Existing Cluster Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="existing_cluster_name"
+                           value="{{ data.get('existing_cluster_name', '') }}" required
+                           placeholder="azlocal-cluster-01">
+                    <div class="form-text">The Azure resource name of the existing Azure Local cluster.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Cluster Resource Group</label>
+                    <input type="text" class="form-control" name="existing_cluster_rg"
+                           value="{{ data.get('existing_cluster_rg', data.get('resource_group', '')) }}"
+                           placeholder="Same as Azure config RG if blank">
+                    <div class="form-text">Leave blank to use the resource group from Step 1.</div>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Azure Local ISO URL <span class="text-danger">*</span></label>
+                    <input type="url" class="form-control" name="iso_url"
+                           value="{{ data.get('iso_url', '') }}" required
+                           placeholder="https://fileserver.corp.local/images/AzureLocal.iso">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Number of New Nodes</label>
+                    <input type="number" class="form-control" name="server_count" min="1" max="15"
+                           value="{{ data.get('server_count', '1') }}">
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=1) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: New Server iDRAC</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

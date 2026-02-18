@@ -12,6 +12,13 @@ Automated bare-metal-to-cluster deployment of **Azure Local** (formerly Azure St
 | **4. Deploy Agent** | Installs the Azure Connected Machine agent and registers each node with Azure Arc. |
 | **5. Deploy Cluster** | Creates the Azure Local cluster resource in Azure and triggers the cloud-orchestrated deployment. Polls until complete. |
 
+### Additional features
+
+| Feature | Description |
+|---|---|
+| **Web Wizard** | Browser-based step-by-step wizard that collects all info (iDRAC IPs, credentials, Azure subscription, NICs, NTP, cluster settings) and launches the deployment with real-time progress via Socket.IO. |
+| **Add Node** | Add one or more new Dell servers to an existing Azure Local cluster (including single-node → multi-node conversion). Available via CLI (`add-node`) and the web wizard. |
+
 ## Prerequisites
 
 | Requirement | Details |
@@ -46,7 +53,32 @@ azure-local-deploy deploy deploy-config.yaml --stage configure_network --stage c
 
 # Dry run (shows plan without executing)
 azure-local-deploy deploy deploy-config.yaml --dry-run
+
+# 5. Add a node to an existing cluster
+azure-local-deploy add-node add-node-config.yaml
+
+# 6. Launch the web wizard (no config file needed)
+azure-local-deploy web
+# → opens http://localhost:5000 with the step-by-step wizard
+azure-local-deploy web --port 8080 --debug
 ```
+
+## Web Wizard
+
+The web wizard provides a browser-based UI that walks you through every setting:
+
+| Wizard | Steps |
+|---|---|
+| **New Cluster** | 1. Azure Account → 2. Global Settings (ISO, server count) → 3. Server iDRAC creds → 4. NIC config per server → 5. NTP/Time → 6. Cluster settings → Review → Deploy |
+| **Add Node** | 1. Azure Account → 2. Existing cluster details → 3. New server iDRAC → 4. NIC config → 5. NTP → Review → Deploy |
+
+Launch with:
+
+```bash
+azure-local-deploy web
+```
+
+Real-time deployment progress is streamed to the browser via Socket.IO.
 
 ## Configuration
 
@@ -97,6 +129,8 @@ deploy_cluster       Create cluster in Azure & deploy
 src/azure_local_deploy/
 ├── cli.py                 # Click CLI entry point
 ├── orchestrator.py        # Pipeline controller
+├── web_app.py             # Flask web wizard + Socket.IO
+├── add_node.py            # Add-node-to-cluster pipeline
 ├── idrac_client.py        # Dell iDRAC Redfish client
 ├── deploy_os.py           # OS image deployment
 ├── configure_network.py   # Network adapter configuration
@@ -104,7 +138,15 @@ src/azure_local_deploy/
 ├── deploy_agent.py        # Azure Arc agent installation
 ├── deploy_cluster.py      # Azure Local cluster creation
 ├── remote.py              # SSH / PowerShell helpers
-└── utils.py               # Logging, retry, validation
+├── utils.py               # Logging, retry, validation
+└── templates/             # Jinja2 HTML templates for web wizard
+    ├── base.html
+    ├── index.html
+    ├── wizard_sidebar.html
+    ├── wizard_new_cluster_step[1-6].html
+    ├── wizard_add_node_step[1-5].html
+    ├── wizard_review.html
+    └── wizard_progress.html
 ```
 
 ## Authentication

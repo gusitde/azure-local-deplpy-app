@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import yaml
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from azure_local_deploy.idrac_client import IdracClient
 from azure_local_deploy.deploy_os import deploy_os_image
@@ -56,6 +56,7 @@ def run_pipeline(
     *,
     stages: list[str] | None = None,
     dry_run: bool = False,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> None:
     """Execute the deployment pipeline for all servers in *config*.
 
@@ -67,17 +68,22 @@ def run_pipeline(
         Optional subset of stages to run.  Defaults to all.
     dry_run:
         If True, log what would happen without executing.
+    progress_callback:
+        Optional callable that receives progress messages (for the web UI).
     """
+    _cb = progress_callback or (lambda msg: None)
     active_stages = stages or STAGES
     servers: list[dict] = config["servers"]
     azure_cfg: dict = config["azure"]
     global_cfg: dict = config.get("global", {})
 
     log.info("[bold magenta]===== Azure Local Deploy Pipeline =====[/]")
+    _cb("Pipeline starting")
     log.info("Servers : %d", len(servers))
     log.info("Stages  : %s", ", ".join(active_stages))
     if dry_run:
         log.info("[yellow]DRY RUN – no changes will be made[/]")
+        _cb("Dry run – no changes made")
         return
 
     # ------------------------------------------------------------------
@@ -89,6 +95,7 @@ def run_pipeline(
         require_keys(server, ["idrac_host", "idrac_user", "idrac_password", "host_ip"], context=f"server #{idx}")
 
         log.info("\n[bold]──── Server %d/%d: %s ────[/]", idx, len(servers), server["idrac_host"])
+        _cb(f"Processing server {idx}/{len(servers)}: {server['idrac_host']}")
 
         host_user = server.get("host_user", "Administrator")
         host_password = server.get("host_password", server["idrac_password"])
@@ -99,6 +106,7 @@ def run_pipeline(
             iso_url = server.get("iso_url") or global_cfg.get("iso_url", "")
             if not iso_url:
                 raise ValueError(f"Server {server['idrac_host']}: no iso_url provided")
+            _cb(f"Stage: deploy_os – {server['idrac_host']}")
 
             with IdracClient(server["idrac_host"], server["idrac_user"], server["idrac_password"]) as idrac:
                 deploy_os_image(
@@ -113,6 +121,7 @@ def run_pipeline(
 
         # -- Configure network ---------------------------------------------
         if "configure_network" in active_stages:
+            _cb(f"Stage: configure_network – {server['idrac_host']}")
             nic_defs = server.get("nics", [])
             nics = [NicConfig(**n) for n in nic_defs]
             if nics:
@@ -122,6 +131,7 @@ def run_pipeline(
 
         # -- Configure time ------------------------------------------------
         if "configure_time" in active_stages:
+            _cb(f"Stage: configure_time – {server['idrac_host']}")
             ntp = server.get("ntp_servers") or global_cfg.get("ntp_servers", ["time.windows.com"])
             tz = server.get("timezone") or global_cfg.get("timezone")
             configure_time_server(
@@ -131,6 +141,7 @@ def run_pipeline(
 
         # -- Deploy Azure Local agent --------------------------------------
         if "deploy_agent" in active_stages:
+            _cb(f"Stage: deploy_agent – {server['idrac_host']}")
             deploy_agent(
                 server["host_ip"], host_user, host_password,
                 tenant_id=azure_cfg["tenant_id"],
@@ -154,6 +165,7 @@ def run_pipeline(
     # Cluster-level stage
     # ------------------------------------------------------------------
     if "deploy_cluster" in active_stages:
+        _cb("Stage: deploy_cluster")
         cluster_cfg = config.get("cluster", {})
         deploy_cluster(
             subscription_id=azure_cfg["subscription_id"],
@@ -170,3 +182,4 @@ def run_pipeline(
         )
 
     log.info("\n[bold green]===== Pipeline complete =====[/]")
+    _cb("Pipeline complete")

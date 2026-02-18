@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Deployment Progress{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10">
+        <h3 class="mb-1"><i class="bi bi-activity"></i> Deployment Progress</h3>
+        <p class="text-secondary mb-4">
+            Job <code>{{ job_id }}</code> –
+            Mode: <strong>{{ job.mode | replace('_', ' ') | title }}</strong> –
+            Status: <span id="status-badge" class="badge bg-warning">{{ job.status }}</span>
+        </p>
+
+        <!-- Stage progress -->
+        <div id="stages" class="mb-4">
+            {% if job.mode == 'add_node' %}
+                {% set stage_list = ["Deploy OS", "Configure Network", "Configure Time", "Deploy Agent", "Add to Cluster"] %}
+            {% else %}
+                {% set stage_list = ["Deploy OS", "Configure Network", "Configure Time", "Deploy Agent", "Deploy Cluster"] %}
+            {% endif %}
+            {% for s in stage_list %}
+            <div class="progress-stage" id="stage-{{ loop.index }}">
+                <i class="bi bi-circle"></i> {{ s }}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Live log output -->
+        <h5>Live Logs</h5>
+        <div class="log-output" id="log-output">
+            <div class="text-secondary">Waiting for deployment to start…</div>
+        </div>
+
+        <!-- Actions -->
+        <div class="mt-4 d-flex gap-2">
+            <a href="/" class="btn btn-outline-secondary"><i class="bi bi-house"></i> Home</a>
+            <a href="/api/config/{{ job_id }}" class="btn btn-outline-primary" target="_blank">
+                <i class="bi bi-download"></i> Download Config YAML
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = io();
+    const jobId = "{{ job_id }}";
+    const logEl = document.getElementById('log-output');
+    const statusBadge = document.getElementById('status-badge');
+    let started = false;
+
+    function addLog(time, message, cls) {
+        if (!started) { logEl.innerHTML = ''; started = true; }
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="log-time">[${time.substring(11,19)}]</span><span class="${cls || ''}">${message}</span>`;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    socket.on('connect', function() {
+        addLog(new Date().toISOString(), 'Connected to server. Starting deployment…', '');
+        socket.emit('start_deployment', {job_id: jobId});
+    });
+
+    socket.on('deploy_started', function(data) {
+        statusBadge.className = 'badge bg-info';
+        statusBadge.textContent = 'Running';
+    });
+
+    socket.on('deploy_log', function(data) {
+        if (data.job_id !== jobId) return;
+        let cls = '';
+        if (data.message.includes('✔') || data.message.includes('complete')) cls = 'log-success';
+        if (data.message.includes('✘') || data.message.includes('ERROR') || data.message.includes('failed')) cls = 'log-error';
+
+        // Update stage indicators
+        const stageMap = {'deploy_os': 1, 'configure_network': 2, 'configure_time': 3, 'deploy_agent': 4, 'deploy_cluster': 5, 'add_node': 5};
+        for (const [key, idx] of Object.entries(stageMap)) {
+            if (data.message.toLowerCase().includes(key.replace('_', ' '))) {
+                const el = document.getElementById('stage-' + idx);
+                if (el) { el.classList.add('running'); el.innerHTML = '<i class="bi bi-arrow-right-circle-fill text-info"></i> ' + el.textContent.trim(); }
+            }
+        }
+        if (data.message.includes('complete')) {
+            document.querySelectorAll('.progress-stage.running').forEach(el => {
+                el.classList.remove('running');
+                el.classList.add('done');
+                el.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> ' + el.textContent.trim();
+            });
+        }
+
+        addLog(data.time, data.message, cls);
+    });
+
+    socket.on('deploy_complete', function(data) {
+        if (data.job_id !== jobId) return;
+        statusBadge.className = 'badge bg-success';
+        statusBadge.textContent = 'Completed';
+        addLog(new Date().toISOString(), '🎉 Deployment completed successfully!', 'log-success');
+        document.querySelectorAll('.progress-stage').forEach(el => {
+            el.classList.remove('running');
+            el.classList.add('done');
+        });
+    });
+
+    socket.on('deploy_error', function(data) {
+        if (data.job_id && data.job_id !== jobId) return;
+        statusBadge.className = 'badge bg-danger';
+        statusBadge.textContent = 'Failed';
+        addLog(new Date().toISOString(), 'ERROR: ' + data.message, 'log-error');
+    });
+});
+</script>
+{% endblock %}

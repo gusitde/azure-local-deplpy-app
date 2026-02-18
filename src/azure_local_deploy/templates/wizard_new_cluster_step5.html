@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}New Cluster – Step 5: Time & NTP{% endblock %}
+{% block content %}
+{% set steps = ["Azure Account", "Global Settings", "Server iDRAC", "Network Config", "Time & NTP", "Cluster Settings"] %}
+{% set current_step = 5 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1">Step 5: Time & NTP Configuration</h3>
+        <p class="text-secondary mb-4">All cluster nodes must be in time-sync. Configure NTP servers and timezone.</p>
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">NTP Servers <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="ntp_servers"
+                           value="{{ data.get('ntp_servers', 'time.windows.com, pool.ntp.org') }}" required>
+                    <div class="form-text">Comma-separated list of NTP server addresses.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Timezone</label>
+                    <select class="form-select" name="timezone">
+                        {% for tz in ["UTC", "Eastern Standard Time", "Central Standard Time", "Mountain Standard Time",
+                                       "Pacific Standard Time", "GMT Standard Time", "W. Europe Standard Time",
+                                       "AUS Eastern Standard Time", "Singapore Standard Time", "Tokyo Standard Time"] %}
+                        <option value="{{ tz }}" {% if data.get('timezone', 'UTC') == tz %}selected{% endif %}>{{ tz }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=4) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Cluster Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

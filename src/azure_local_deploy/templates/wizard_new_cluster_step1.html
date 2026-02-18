@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}New Cluster – Step 1: Azure Account{% endblock %}
+{% block content %}
+{% set steps = ["Azure Account", "Global Settings", "Server iDRAC", "Network Config", "Time & NTP", "Cluster Settings"] %}
+{% set current_step = 1 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1">Step 1: Azure Account</h3>
+        <p class="text-secondary mb-4">Enter your Azure subscription details. These are required for Arc registration and cluster creation.</p>
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Azure Tenant ID <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="tenant_id" value="{{ data.get('tenant_id', '') }}" required
+                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Subscription ID <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="subscription_id" value="{{ data.get('subscription_id', '') }}" required
+                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Resource Group <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="resource_group" value="{{ data.get('resource_group', '') }}" required
+                           placeholder="rg-azurelocal-prod">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Azure Region <span class="text-danger">*</span></label>
+                    <select class="form-select" name="region">
+                        {% for r in ["eastus", "eastus2", "westus2", "westus3", "centralus", "northeurope", "westeurope", "uksouth", "southeastasia", "australiaeast"] %}
+                        <option value="{{ r }}" {% if data.get('region', 'eastus') == r %}selected{% endif %}>{{ r }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Global Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

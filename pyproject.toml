@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "azure-local-deploy"
+version = "0.1.0"
+description = "Automated Azure Local deployment on Dell servers via iDRAC Redfish"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Azure Local Deploy Team"}]
+
+dependencies = [
+    "requests>=2.31,<3",
+    "pyyaml>=6.0,<7",
+    "rich>=13.0,<14",
+    "click>=8.1,<9",
+    "paramiko>=3.4,<4",
+    "azure-identity>=1.15,<2",
+    "azure-mgmt-azurestackhci>=8.0,<9",
+    "azure-mgmt-resource>=23.0,<24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov", "ruff", "mypy"]
+
+[project.scripts]
+azure-local-deploy = "azure_local_deploy.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true

@@ -1,0 +1,122 @@
+# ============================================================================
+# Azure Local Deploy – Sample Configuration
+# ============================================================================
+# Copy this file to  deploy-config.yaml  and fill in your values.
+# All secrets (passwords, keys) can also be passed via environment variables
+# prefixed with ALD_ (e.g. ALD_IDRAC_PASSWORD).
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Global defaults (can be overridden per-server)
+# ---------------------------------------------------------------------------
+global:
+  # HTTP/NFS/CIFS URL to the Azure Local OS ISO, accessible from every iDRAC
+  iso_url: "https://yourfileserver.corp.local/images/AzureLocal_25H2.iso"
+
+  # NTP servers for all nodes
+  ntp_servers:
+    - time.windows.com
+    - pool.ntp.org
+
+  # Windows timezone id (optional)
+  timezone: "UTC"
+
+  # HTTPS proxy (blank = direct)
+  proxy_url: ""
+
+# ---------------------------------------------------------------------------
+# Azure configuration
+# ---------------------------------------------------------------------------
+azure:
+  tenant_id:        "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  subscription_id:  "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  resource_group:   "rg-azurelocal-prod"
+  region:           "eastus"
+
+# ---------------------------------------------------------------------------
+# Cluster-level settings
+# ---------------------------------------------------------------------------
+cluster:
+  name: "azlocal-cluster-01"
+  # Static IP for the Windows Failover Cluster name object
+  cluster_ip: "10.0.1.100"
+  # Active Directory (leave blank for AD-less deployment)
+  domain_fqdn: "corp.local"
+  ou_path: "OU=AzureLocal,DC=corp,DC=local"
+  # Max wait for cloud deployment (seconds)
+  deployment_timeout: 7200
+  # Optional storage-network overrides
+  # storage_networks:
+  #   - name: Storage1
+  #     vlan_id: 711
+
+# ---------------------------------------------------------------------------
+# Server list
+# ---------------------------------------------------------------------------
+servers:
+  # ---- Node 1 -----------------------------------------------------------
+  - idrac_host: "10.0.0.11"
+    idrac_user: "root"
+    idrac_password: "Calvin123!"     # change me!
+    host_ip: "10.0.1.11"
+    host_user: "Administrator"
+    host_password: "P@ssw0rd!"       # change me!
+    ssh_port: 22
+    install_timeout: 3600
+
+    # Azure Arc resource id (populated after agent deployment)
+    arc_resource_id: ""
+
+    # Per-server ISO override (optional – falls back to global.iso_url)
+    # iso_url: ""
+
+    # Network adapters
+    nics:
+      - adapter_name: "Mgmt"
+        mac_address: "AA:BB:CC:DD:EE:01"
+        ip_address: "10.0.1.11"
+        prefix_length: 24
+        gateway: "10.0.1.1"
+        dns_servers:
+          - "10.0.0.5"
+          - "10.0.0.6"
+      - adapter_name: "Storage1"
+        mac_address: "AA:BB:CC:DD:EE:02"
+        ip_address: "10.0.2.11"
+        prefix_length: 24
+        vlan_id: 711
+      - adapter_name: "Storage2"
+        mac_address: "AA:BB:CC:DD:EE:03"
+        ip_address: "10.0.3.11"
+        prefix_length: 24
+        vlan_id: 712
+
+  # ---- Node 2 -----------------------------------------------------------
+  - idrac_host: "10.0.0.12"
+    idrac_user: "root"
+    idrac_password: "Calvin123!"
+    host_ip: "10.0.1.12"
+    host_user: "Administrator"
+    host_password: "P@ssw0rd!"
+    ssh_port: 22
+    install_timeout: 3600
+    arc_resource_id: ""
+    nics:
+      - adapter_name: "Mgmt"
+        mac_address: "AA:BB:CC:DD:EE:11"
+        ip_address: "10.0.1.12"
+        prefix_length: 24
+        gateway: "10.0.1.1"
+        dns_servers:
+          - "10.0.0.5"
+          - "10.0.0.6"
+      - adapter_name: "Storage1"
+        mac_address: "AA:BB:CC:DD:EE:12"
+        ip_address: "10.0.2.12"
+        prefix_length: 24
+        vlan_id: 711
+      - adapter_name: "Storage2"
+        mac_address: "AA:BB:CC:DD:EE:13"
+        ip_address: "10.0.3.12"
+        prefix_length: 24
+        vlan_id: 712

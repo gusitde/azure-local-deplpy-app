@@ -2,36 +2,70 @@
 {% block title %}Azure Local Deploy – Home{% endblock %}
 {% block content %}
 <div class="row justify-content-center mt-5">
-    <div class="col-lg-8">
+    <div class="col-lg-10">
         <div class="text-center mb-5">
             <div class="hero-icon mb-3"><i class="bi bi-hdd-rack"></i></div>
             <h1 class="display-5 fw-bold">Azure Local Deploy</h1>
             <p class="lead text-secondary">Automated bare-metal to cluster deployment for Dell servers via iDRAC Redfish</p>
         </div>
 
+        <!-- Primary Workflows -->
         <div class="row g-4">
-            <!-- New Cluster -->
-            <div class="col-md-6">
-                <div class="card h-100">
+            <!-- 1. New Cluster -->
+            <div class="col-md-4">
+                <div class="card h-100 border-success">
                     <div class="card-body text-center p-4">
                         <i class="bi bi-plus-circle display-4 text-success mb-3 d-block"></i>
-                        <h5 class="card-title">New Cluster Deployment</h5>
-                        <p class="card-text text-secondary">Deploy Azure Local on new Dell servers from scratch. The wizard will guide you through iDRAC setup, OS deployment, networking, and cluster creation.</p>
-                        <a href="/wizard/new-cluster" class="btn btn-primary btn-lg mt-2">
-                            <i class="bi bi-rocket-takeoff"></i> Start Wizard
+                        <h5 class="card-title">New Cluster</h5>
+                        <p class="card-text text-secondary">Deploy Azure Local on factory-default Dell servers. Guides you through iDRAC, OS, networking, and cluster creation.</p>
+                        <a href="/wizard/new-cluster" class="btn btn-success btn-lg mt-2 w-100">
+                            <i class="bi bi-rocket-takeoff"></i> Create Cluster
                         </a>
                     </div>
                 </div>
             </div>
-            <!-- Add Node -->
-            <div class="col-md-6">
-                <div class="card h-100">
+            <!-- 2. Add Node -->
+            <div class="col-md-4">
+                <div class="card h-100 border-info">
                     <div class="card-body text-center p-4">
                         <i class="bi bi-node-plus display-4 text-info mb-3 d-block"></i>
-                        <h5 class="card-title">Add Node to Cluster</h5>
-                        <p class="card-text text-secondary">Add a new Dell server to an existing Azure Local cluster. Works for expanding multi-node clusters or converting single-node to multi-node.</p>
-                        <a href="/wizard/add-node" class="btn btn-outline-primary btn-lg mt-2">
-                            <i class="bi bi-plus-lg"></i> Add Node Wizard
+                        <h5 class="card-title">Add Node</h5>
+                        <p class="card-text text-secondary">Expand an existing cluster by adding a new Dell server. Works for single-node to multi-node conversion.</p>
+                        <a href="/wizard/add-node" class="btn btn-info btn-lg mt-2 w-100">
+                            <i class="bi bi-plus-lg"></i> Add Node
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <!-- 3. Rebuild Cluster -->
+            <div class="col-md-4">
+                <div class="card h-100 border-danger">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-arrow-repeat display-4 text-danger mb-3 d-block"></i>
+                        <h5 class="card-title">Rebuild Cluster</h5>
+                        <p class="card-text text-secondary">Destroy and rebuild an existing cluster. Backs up and migrates workloads, tears down, rebuilds, and restores.</p>
+                        <a href="/wizard/rebuild" class="btn btn-danger btn-lg mt-2 w-100">
+                            <i class="bi bi-arrow-repeat"></i> Rebuild Cluster
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secondary Utilities -->
+        <div class="row g-4 mt-2">
+            <div class="col-md-12">
+                <div class="card bg-dark border-secondary">
+                    <div class="card-body d-flex align-items-center justify-content-between p-3">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-gear-wide-connected display-6 text-warning me-3"></i>
+                            <div>
+                                <h6 class="card-title mb-0">Day 2 Services</h6>
+                                <small class="text-secondary">Post-deployment: logical networks, VM images, and test VMs</small>
+                            </div>
+                        </div>
+                        <a href="/wizard/day2" class="btn btn-outline-warning">
+                            <i class="bi bi-boxes"></i> Day 2 Wizard
                         </a>
                     </div>
                 </div>

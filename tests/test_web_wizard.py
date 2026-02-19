@@ -6,11 +6,11 @@ from azure_local_deploy.web_app import _build_config_from_wizard, _max_steps
 
 
 def test_max_steps_new_cluster():
-    assert _max_steps("new_cluster") == 6
+    assert _max_steps("new_cluster") == 12
 
 
 def test_max_steps_add_node():
-    assert _max_steps("add_node") == 5
+    assert _max_steps("add_node") == 9
 
 
 def test_build_config_new_cluster_basic():

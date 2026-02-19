@@ -16,9 +16,9 @@
         <!-- Stage progress -->
         <div id="stages" class="mb-4">
             {% if job.mode == 'add_node' %}
-                {% set stage_list = ["Deploy OS", "Configure Network", "Configure Time", "Deploy Agent", "Add to Cluster"] %}
+                {% set stage_list = ["Validate Nodes", "Environment Check", "Update Firmware", "Configure BIOS", "Deploy OS", "Configure Network", "Configure Time", "Deploy Agent", "Add to Cluster"] %}
             {% else %}
-                {% set stage_list = ["Deploy OS", "Configure Network", "Configure Time", "Deploy Agent", "Deploy Cluster"] %}
+                {% set stage_list = ["Validate Nodes", "Environment Check", "Update Firmware", "Configure BIOS", "Deploy OS", "Configure Network", "Configure Time", "Deploy Agent", "Deploy Cluster"] %}
             {% endif %}
             {% for s in stage_list %}
             <div class="progress-stage" id="stage-{{ loop.index }}">

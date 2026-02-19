@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Rebuild Cluster – Step 1: AI Provider{% endblock %}
+{% block content %}
+<div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 wizard-sidebar py-4">
+        <h6 class="text-uppercase text-secondary px-3 mb-3">Rebuild Wizard</h6>
+        <div class="step active"><span class="step-num">1</span> AI Provider</div>
+        <div class="step"><span class="step-num">2</span> Source Cluster</div>
+        <div class="step"><span class="step-num">3</span> Migration Target</div>
+        <div class="step"><span class="step-num">4</span> Backup Settings</div>
+        <div class="step"><span class="step-num">5</span> Discovery & Planning</div>
+        <div class="step"><span class="step-num">6</span> Options & Review</div>
+        <div class="step"><span class="step-num">7</span> Execute</div>
+    </div>
+    <!-- Content -->
+    <div class="col-md-9 py-4">
+        <h3 class="mb-4"><i class="bi bi-robot"></i> Step 1: AI Provider Selection</h3>
+        <p class="text-secondary">Choose your AI provider for migration planning, risk assessment, and script generation. You must configure at least one primary provider.</p>
+        <form method="post">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-stars"></i> Primary AI Provider <span class="badge bg-danger">Required</span></div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Provider</label>
+                        <select name="ai_primary_provider" class="form-select" required>
+                            <option value="openai" {% if data.get('ai_primary_provider') == 'openai' %}selected{% endif %}>OpenAI (GPT-5)</option>
+                            <option value="azure_openai" {% if data.get('ai_primary_provider') == 'azure_openai' %}selected{% endif %}>Azure OpenAI</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">API Key</label>
+                        <input type="password" name="ai_primary_api_key" class="form-control"
+                               value="{{ data.get('ai_primary_api_key', '') }}" required
+                               placeholder="sk-... or Azure OpenAI key">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Model</label>
+                        <input type="text" name="ai_primary_model" class="form-control"
+                               value="{{ data.get('ai_primary_model', 'gpt-5') }}"
+                               placeholder="gpt-5">
+                    </div>
+                    <div class="row" id="azure-oai-fields">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Azure Endpoint <small class="text-secondary">(Azure OpenAI only)</small></label>
+                            <input type="text" name="ai_primary_endpoint" class="form-control"
+                                   value="{{ data.get('ai_primary_endpoint', '') }}"
+                                   placeholder="https://your-resource.openai.azure.com/">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Deployment Name</label>
+                            <input type="text" name="ai_primary_deployment" class="form-control"
+                                   value="{{ data.get('ai_primary_deployment', '') }}"
+                                   placeholder="gpt-5-deployment">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-cpu"></i> Secondary AI Provider <span class="badge bg-secondary">Optional</span></div>
+                <div class="card-body">
+                    <p class="text-secondary small">Claude Opus 4 is recommended for complex code generation, IaC templates, and script generation.</p>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="ai_enable_secondary"
+                               id="enableSecondary" value="true"
+                               {% if data.get('ai_enable_secondary') == 'true' %}checked{% endif %}>
+                        <label class="form-check-label" for="enableSecondary">Enable secondary AI provider</label>
+                    </div>
+                    <div id="secondary-fields" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Provider</label>
+                            <select name="ai_secondary_provider" class="form-select">
+                                <option value="anthropic" {% if data.get('ai_secondary_provider') == 'anthropic' %}selected{% endif %}>Anthropic (Claude Opus 4)</option>
+                                <option value="openai" {% if data.get('ai_secondary_provider') == 'openai' %}selected{% endif %}>OpenAI</option>
+                                <option value="azure_openai" {% if data.get('ai_secondary_provider') == 'azure_openai' %}selected{% endif %}>Azure OpenAI</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">API Key</label>
+                            <input type="password" name="ai_secondary_api_key" class="form-control"
+                                   value="{{ data.get('ai_secondary_api_key', '') }}"
+                                   placeholder="sk-ant-...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Model</label>
+                            <input type="text" name="ai_secondary_model" class="form-control"
+                                   value="{{ data.get('ai_secondary_model', 'claude-opus-4-20250514') }}"
+                                   placeholder="claude-opus-4-20250514">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Cancel</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Source Cluster</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const cb = document.getElementById('enableSecondary');
+    const sf = document.getElementById('secondary-fields');
+    cb.addEventListener('change', () => { sf.style.display = cb.checked ? 'block' : 'none'; });
+    if (cb.checked) sf.style.display = 'block';
+</script>
+{% endblock %}

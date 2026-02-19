@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Rebuild Cluster – Step 6: Options & Review{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-3 wizard-sidebar py-4">
+        <h6 class="text-uppercase text-secondary px-3 mb-3">Rebuild Wizard</h6>
+        <div class="step completed"><span class="step-num">1</span> AI Provider</div>
+        <div class="step completed"><span class="step-num">2</span> Source Cluster</div>
+        <div class="step completed"><span class="step-num">3</span> Migration Target</div>
+        <div class="step completed"><span class="step-num">4</span> Backup Settings</div>
+        <div class="step completed"><span class="step-num">5</span> Discovery & Planning</div>
+        <div class="step active"><span class="step-num">6</span> Options & Review</div>
+        <div class="step"><span class="step-num">7</span> Execute</div>
+    </div>
+    <div class="col-md-9 py-4">
+        <h3 class="mb-4"><i class="bi bi-gear"></i> Step 6: Options & Review</h3>
+        <p class="text-secondary">Review your settings and choose pipeline options before execution.</p>
+        <form method="post">
+            <!-- Pipeline Options -->
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-sliders"></i> Pipeline Options</div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="useAi" name="use_ai" value="true"
+                               {% if data.get('use_ai', 'true') == 'true' %}checked{% endif %}>
+                        <label class="form-check-label" for="useAi">Use AI for migration planning</label>
+                    </div>
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="skipMoveBack" name="skip_move_back" value="true"
+                               {% if data.get('skip_move_back') == 'true' %}checked{% endif %}>
+                        <label class="form-check-label" for="skipMoveBack">Skip move-back (keep VMs on target)</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary -->
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-clipboard-check"></i> Configuration Summary</div>
+                <div class="card-body">
+                    <table class="table table-sm table-dark mb-0">
+                        <tbody>
+                            <tr><th>Source Cluster</th><td>{{ data.get('source_host', '—') }}</td></tr>
+                            <tr><th>Cluster Name</th><td>{{ data.get('cluster_name', '—') }}</td></tr>
+                            <tr><th>Migration Target</th><td>{{ data.get('target_host', '—') }} ({{ data.get('target_type', '—') }})</td></tr>
+                            <tr><th>Migration Method</th><td>{{ data.get('migration_method', 'live') }}</td></tr>
+                            <tr>
+                                <th>Backup</th>
+                                <td>
+                                    {% if data.get('backup_enabled', 'true') == 'true' %}
+                                        <span class="text-success"><i class="bi bi-check-circle"></i> Enabled</span>
+                                        — {{ data.get('backup_type', 'export') }} to {{ data.get('backup_path', 'not set') }}
+                                    {% else %}
+                                        <span class="text-danger"><i class="bi bi-x-circle"></i> DISABLED</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr><th>Discovered VMs</th><td>{{ data.get('discovered_vm_count', '0') }}</td></tr>
+                            <tr>
+                                <th>AI Provider</th>
+                                <td>
+                                    {{ data.get('ai_primary_provider', 'openai') }} ({{ data.get('ai_primary_model', 'gpt-5') }})
+                                    {% if data.get('ai_enable_secondary') == 'true' %}
+                                        + {{ data.get('ai_secondary_provider', 'anthropic') }} ({{ data.get('ai_secondary_model', 'claude-opus-4-20250514') }})
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr><th>Azure</th><td>{{ data.get('subscription_id', '—')[:8] }}... / {{ data.get('resource_group', '—') }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 14-Stage Pipeline Preview -->
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-list-ol"></i> 14-Stage Pipeline</div>
+                <div class="card-body p-0">
+                    <ol class="list-group list-group-numbered list-group-flush">
+                        <li class="list-group-item bg-transparent text-light">Discovery — Enumerate all VMs</li>
+                        <li class="list-group-item bg-transparent text-light">Dependency Mapping — Infer VM relationships</li>
+                        <li class="list-group-item bg-transparent text-light">AI Planning — Generate migration waves</li>
+                        <li class="list-group-item bg-transparent text-light">Backup VMs — Export VMs to backup path</li>
+                        <li class="list-group-item bg-transparent text-light">Pre-migration Validation — Check target capacity</li>
+                        <li class="list-group-item bg-transparent text-light">Evacuate Workloads — Migrate VMs to target</li>
+                        <li class="list-group-item bg-transparent text-light">Verify Evacuation — Confirm VMs running on target</li>
+                        <li class="list-group-item bg-transparent text-light">Cluster Tear-Down — Unregister Azure + remove cluster</li>
+                        <li class="list-group-item bg-transparent text-light">Cluster Rebuild — Run 17-stage hydration pipeline</li>
+                        <li class="list-group-item bg-transparent text-light">Day 2 Restore — Recreate networks + images</li>
+                        <li class="list-group-item bg-transparent text-light">Move-Back Workloads — Migrate VMs back</li>
+                        <li class="list-group-item bg-transparent text-light">Post-Move Validation — Health checks on rebuilt cluster</li>
+                        <li class="list-group-item bg-transparent text-light">Verify Backups — Confirm backup integrity</li>
+                        <li class="list-group-item bg-transparent text-light">Cleanup — Finalize and remove temp resources</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/wizard/rebuild/step/5" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-danger btn-lg">
+                    <i class="bi bi-arrow-right"></i> Proceed to Execution
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

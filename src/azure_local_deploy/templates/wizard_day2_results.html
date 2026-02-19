@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Day 2 Services — Results{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-10">
+        <h3 class="mb-4"><i class="bi bi-clipboard-check"></i> Day 2 Services — Results</h3>
+
+        {% if report.all_ok %}
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill"></i> <strong>All Day 2 tasks completed successfully.</strong>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill"></i> <strong>Some tasks failed.</strong> Review the details below.
+        </div>
+        {% endif %}
+
+        <div class="card mb-4">
+            <div class="card-header"><i class="bi bi-list-task"></i> Task Results</div>
+            <ul class="list-group list-group-flush">
+                {% for task in report.tasks %}
+                <li class="list-group-item d-flex align-items-start gap-2">
+                    {% if task.success %}
+                    <i class="bi bi-check-circle-fill text-success mt-1"></i>
+                    {% else %}
+                    <i class="bi bi-x-circle-fill text-danger mt-1"></i>
+                    {% endif %}
+                    <div>
+                        <strong>{{ task.name }}</strong><br>
+                        <span class="text-secondary">{{ task.message }}</span>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% if report.all_ok %}
+        <div class="card mb-4">
+            <div class="card-header bg-success bg-opacity-25"><i class="bi bi-key"></i> VM Access Credentials</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr><th>VM Name</th><th>Username</th><th>Access Method</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ data.get('vm1_name', 'test-vm-winserver2025') }}</td>
+                            <td><code>{{ data.get('vm1_admin_user', 'azurelocaladmin') }}</code></td>
+                            <td>RDP or Azure Portal VM Console</td>
+                        </tr>
+                        <tr>
+                            <td>{{ data.get('vm2_name', 'test-vm-win11') }}</td>
+                            <td><code>{{ data.get('vm2_admin_user', 'azurelocaladmin') }}</code></td>
+                            <td>RDP or Azure Portal VM Console</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="form-text mt-2">
+                    <i class="bi bi-shield-lock"></i> Use the password you provided during setup to log in.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2">
+            <a href="/" class="btn btn-outline-secondary"><i class="bi bi-house"></i> Home</a>
+            <a href="/wizard/day2" class="btn btn-outline-warning"><i class="bi bi-arrow-repeat"></i> Run Again</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

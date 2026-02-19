@@ -24,6 +24,84 @@ global:
   # HTTPS proxy (blank = direct)
   proxy_url: ""
 
+  # Path to OEM Solution Builder Extension (SBE) content.
+  # Copied to C:\SBE on each node before deployment.
+  # See: https://learn.microsoft.com/en-us/azure/azure-local/concepts/system-requirements-23h2#hardware-requirements
+  sbe_source: ""
+
+  # Check online Azure Local docs before deployment (default true)
+  check_docs: true
+
+  # Abort pipeline if pre-flight validation finds failures
+  abort_on_validation_failure: true
+
+# ---------------------------------------------------------------------------
+# Firmware update settings
+# ---------------------------------------------------------------------------
+firmware:
+  # Dell Repository catalog URL (uses Dell Repository Manager or downloads.dell.com)
+  # If set, all components are updated from the catalog automatically.
+  # catalog_url: "https://downloads.dell.com/catalog/Catalog.xml"
+  catalog_url: ""
+
+  # -- OR -- specify individual DUP targets (used when catalog_url is empty):
+  targets: []
+    # - component: "BIOS"
+    #   dup_url: "https://fileserver.corp.local/firmware/BIOS_W7N09_WN64_2.21.0.EXE"
+    #   target_version: "2.21.0"
+    #   install_option: "NowAndReboot"   # Now | NowAndReboot | NextReboot
+    # - component: "iDRAC"
+    #   dup_url: "https://fileserver.corp.local/firmware/iDRAC-with-Lifecycle-Controller_7.00.60.00.EXE"
+    #   target_version: "7.00.60.00"
+    #   install_option: "NowAndReboot"
+    # - component: "NIC"
+    #   dup_url: "https://fileserver.corp.local/firmware/Network_Firmware_XXXX.EXE"
+    #   target_version: ""
+    #   install_option: "NowAndReboot"
+
+  # Reboot after firmware updates to apply
+  apply_reboot: true
+  # Max wait for firmware update tasks (seconds)
+  task_timeout: 3600
+
+# ---------------------------------------------------------------------------
+# BIOS configuration
+# ---------------------------------------------------------------------------
+bios:
+  # Profile name (informational)
+  profile: "AzureLocal"
+
+  # Reboot after BIOS changes to apply
+  apply_reboot: true
+  task_timeout: 1200
+
+  # Custom attribute overrides (merged on top of Azure Local defaults).
+  # The defaults already set: VT, VT-d, SR-IOV, SecureBoot, UEFI, TPM,
+  # MemOpMode=Optimizer, LogicalProc=Enabled, ProcCStates=Disabled, etc.
+  # Only specify attributes you want to override:
+  attributes: {}
+    # SysProfile: "PerfOptimized"
+    # ProcCStates: "Enabled"
+
+# ---------------------------------------------------------------------------
+# Microsoft Environment Checker (AzStackHci.EnvironmentChecker)
+# Installs on each node via SSH, runs validators, then uninstalls.
+# See: https://learn.microsoft.com/en-us/azure/azure-local/manage/use-environment-checker
+# ---------------------------------------------------------------------------
+environment_checker:
+  # Which validators to run (null = all 5).  Options:
+  #   Connectivity, Hardware, Active Directory, Network, Arc Integration
+  validators: null
+
+  # Timeout (seconds) for installing the PS module on each node
+  install_timeout: 300
+
+  # Timeout (seconds) per validator execution
+  validator_timeout: 600
+
+  # Uninstall the module after checks (Microsoft requires this before deploy)
+  auto_uninstall: true
+
 # ---------------------------------------------------------------------------
 # Azure configuration
 # ---------------------------------------------------------------------------
@@ -66,6 +144,10 @@ servers:
 
     # Azure Arc resource id (populated after agent deployment)
     arc_resource_id: ""
+
+    # Desired Windows hostname for this node (optional).
+    # If set, the node is renamed and rebooted before network configuration.
+    hostname: ""
 
     # Per-server ISO override (optional – falls back to global.iso_url)
     # iso_url: ""
@@ -120,3 +202,122 @@ servers:
         ip_address: "10.0.3.12"
         prefix_length: 24
         vlan_id: 712
+
+# ---------------------------------------------------------------------------
+# Add Node configuration (used by add-node command / wizard)
+# ---------------------------------------------------------------------------
+add_node:
+  # Name of the existing cluster to add nodes to
+  existing_cluster_name: "azlocal-cluster-01"
+  # Resource group of the existing cluster (defaults to azure.resource_group)
+  existing_cluster_resource_group: "rg-azurelocal-prod"
+
+  # SSH credentials for an existing healthy cluster node.
+  # Used for: OS version matching, post-add quorum/storage configuration,
+  # and post-join cluster health validation.
+  existing_node:
+    host: "10.0.1.11"            # IP of any existing cluster node
+    user: "Administrator"
+    password: "P@ssw0rd!"        # change me!
+    ssh_port: 22
+
+# Proxy settings for new nodes (also used by add-node pipeline)
+# proxy:
+#   http_proxy: "http://proxy.corp.local:8080"
+#   https_proxy: "http://proxy.corp.local:8080"
+#   no_proxy: "localhost,127.0.0.1,.corp.local"
+
+# Pre-flight validation toggles
+# validation:
+#   run_pre_flight: true           # Run hardware & environment checks
+#   abort_on_failure: true         # Abort pipeline on check failures
+
+# Security profile applied to new nodes (recommended | custom)
+# security:
+#   profile: "recommended"
+
+# ---------------------------------------------------------------------------
+# Rebuild Cluster configuration (used by rebuild command / wizard)
+# ---------------------------------------------------------------------------
+rebuild:
+  # Source cluster to rebuild
+  source_cluster:
+    host: "10.0.1.11"            # Any node IP in the existing cluster
+    username: "Administrator"
+    password: "P@ssw0rd!"        # change me!
+    ssh_port: 22
+
+  # Temporary migration target – VMs will live here during rebuild
+  migration_target:
+    host: "10.0.1.50"            # Standalone Hyper-V host or another cluster node
+    username: "Administrator"
+    password: "P@ssw0rd!"        # change me!
+    type: "hyperv_host"          # hyperv_host | hyperv_cluster | azure_vm
+    storage_path: "C:\\ClusterStorage\\Volume1"
+
+  # VM backup before migration (strongly recommended)
+  backup:
+    enabled: true
+    backup_path: "\\\\fileserver\\backups\\rebuild-2025"
+    backup_type: "export"        # export | checkpoint
+    parallel_backups: 2
+    verify_backup: true
+    exclude_vms: []              # VM names to skip backup for
+
+  # Migration method
+  migration_method: "live"       # live | quick | export_import
+
+# ---------------------------------------------------------------------------
+# Authentication & API configuration
+# ---------------------------------------------------------------------------
+auth:
+  # JWT settings
+  jwt_secret: ""                 # Auto-generated if empty
+  access_token_ttl: 3600         # 1 hour
+  refresh_token_ttl: 604800      # 7 days
+
+  # Default admin user (created on first launch)
+  default_admin:
+    username: "admin"
+    password: "admin123"         # change on first login!
+
+  # API key settings
+  api_keys_enabled: true
+
+# ---------------------------------------------------------------------------
+# AI Provider configuration
+# ---------------------------------------------------------------------------
+ai:
+  # Primary provider (REQUIRED for AI features)
+  primary:
+    provider: "openai"           # openai | azure_openai
+    api_key: ""                  # or set OPENAI_API_KEY env var
+    model: "gpt-5"
+    # Azure OpenAI only:
+    # endpoint: "https://your-resource.openai.azure.com/"
+    # deployment_name: "gpt-5-deployment"
+    # api_version: "2025-12-01"
+    max_tokens: 4096
+    temperature: 0.3
+
+  # Secondary provider (optional, for code / IaC generation)
+  secondary:
+    provider: "anthropic"        # anthropic | openai | azure_openai
+    api_key: ""                  # or set ANTHROPIC_API_KEY env var
+    model: "claude-opus-4-20250514"
+    max_tokens: 8192
+    temperature: 0.2
+
+  # Task routing: which provider handles each task type
+  task_routing:
+    dependency_analysis: "primary"
+    runbook_generation: "primary"
+    downtime_estimation: "primary"
+    risk_assessment: "primary"
+    interactive_chat: "primary"
+    script_generation: "secondary"
+    iac_generation: "secondary"
+    terminal_automation: "secondary"
+    code_review: "secondary"
+    log_analysis: "secondary"
+    fallback: "primary"

@@ -1,45 +1,499 @@
 {% extends "base.html" %}
-{% block title %}New Cluster – Step 1: Azure Account{% endblock %}
+{% block title %}New Cluster – Step 1: Scope &amp; Design{% endblock %}
 {% block content %}
-{% set steps = ["Azure Account", "Global Settings", "Server iDRAC", "Network Config", "Time & NTP", "Cluster Settings"] %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
 {% set current_step = 1 %}
 <div class="row g-0">
     <div class="col-md-3 col-lg-2">
         {% include "wizard_sidebar.html" with context %}
     </div>
     <div class="col-md-9 col-lg-10 p-4">
-        <h3 class="mb-1">Step 1: Azure Account</h3>
-        <p class="text-secondary mb-4">Enter your Azure subscription details. These are required for Arc registration and cluster creation.</p>
+        <h3 class="mb-1"><i class="bi bi-clipboard2-data"></i> Step 1: Scope &amp; Design</h3>
+        <p class="text-secondary mb-4">
+            Plan your Azure Local cluster deployment. This checklist is based on the
+            <a href="https://learn.microsoft.com/en-us/azure/azure-local/plan/deployment-checklist?view=azloc-2601" target="_blank" class="text-info">
+                Microsoft Azure Local deployment checklist</a>.
+            Complete each section to define the scope of your deployment before proceeding.
+        </p>
         <form method="POST">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Azure Tenant ID <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="tenant_id" value="{{ data.get('tenant_id', '') }}" required
-                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Subscription ID <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="subscription_id" value="{{ data.get('subscription_id', '') }}" required
-                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Resource Group <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="resource_group" value="{{ data.get('resource_group', '') }}" required
-                           placeholder="rg-azurelocal-prod">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Azure Region <span class="text-danger">*</span></label>
-                    <select class="form-select" name="region">
-                        {% for r in ["eastus", "eastus2", "westus2", "westus3", "centralus", "northeurope", "westeurope", "uksouth", "southeastasia", "australiaeast"] %}
-                        <option value="{{ r }}" {% if data.get('region', 'eastus') == r %}selected{% endif %}>{{ r }}</option>
-                        {% endfor %}
-                    </select>
+
+            {# ── Deployment Type ──────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-signpost-split"></i> Deployment Type</div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        You are creating a <strong>new Azure Local cluster</strong>.
+                        Need to add a node to an existing cluster instead?
+                        <a href="/wizard/add-node" class="text-info">Switch to Add Node wizard</a>.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Cluster Size <span class="text-danger">*</span></label>
+                            <select class="form-select" name="scope_cluster_size" id="scopeClusterSize">
+                                <option value="single" {% if data.get('scope_cluster_size', '') == 'single' %}selected{% endif %}>Single-node (1 server)</option>
+                                <option value="two" {% if data.get('scope_cluster_size', '') == 'two' %}selected{% endif %}>Two-node cluster</option>
+                                <option value="multi" {% if data.get('scope_cluster_size', 'multi') == 'multi' %}selected{% endif %}>Multi-node cluster (3–16)</option>
+                            </select>
+                            <div class="form-text">
+                                Microsoft supports 1 to 16 nodes per cluster.
+                                <a href="https://learn.microsoft.com/en-us/azure/azure-local/concepts/system-requirements?view=azloc-2601" target="_blank" class="text-info small">System requirements →</a>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Number of Nodes <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="server_count" min="1" max="16"
+                                   value="{{ data.get('server_count', '2') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Naming Convention</label>
+                            <input type="text" class="form-control" name="scope_naming_pattern"
+                                   value="{{ data.get('scope_naming_pattern', '') }}"
+                                   placeholder="azloc-node-01, azloc-node-02, …">
+                            <div class="form-text">Recommended: Use a consistent naming pattern for nodes.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {# ── Hardware Readiness Checklist ─────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-pc-display-horizontal"></i> Hardware Readiness Checklist</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Verify your Dell PowerEdge servers meet
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/concepts/system-requirements?view=azloc-2601" target="_blank" class="text-info">Azure Local system requirements</a>.
+                        The pipeline validates these automatically, but pre-confirming avoids surprises.
+                    </p>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_cpu" value="true"
+                                       id="hwCpu" {% if data.get('scope_hw_cpu') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwCpu">
+                                    <strong>CPU:</strong> 64-bit Intel Nehalem+ / AMD EPYC or equivalent, minimum 4 physical cores
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_ram" value="true"
+                                       id="hwRam" {% if data.get('scope_hw_ram') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwRam">
+                                    <strong>RAM:</strong> Minimum 32 GB per node (64 GB+ recommended)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_boot" value="true"
+                                       id="hwBoot" {% if data.get('scope_hw_boot') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwBoot">
+                                    <strong>Boot drive:</strong> Minimum 200 GB SSD/NVMe (separate from data drives)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_data" value="true"
+                                       id="hwData" {% if data.get('scope_hw_data') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwData">
+                                    <strong>Data drives:</strong> At least 2 data drives of same type (NVMe or SSD), no RAID
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_nic" value="true"
+                                       id="hwNic" {% if data.get('scope_hw_nic') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwNic">
+                                    <strong>Network:</strong> Minimum 1 × 1 GbE management + storage NICs (10/25 GbE RDMA recommended)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_tpm" value="true"
+                                       id="hwTpm" {% if data.get('scope_hw_tpm') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwTpm">
+                                    <strong>TPM 2.0:</strong> Trusted Platform Module present and enabled
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_uefi" value="true"
+                                       id="hwUefi" {% if data.get('scope_hw_uefi') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwUefi">
+                                    <strong>UEFI + Secure Boot:</strong> Boot mode set to UEFI with Secure Boot capable
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_idrac" value="true"
+                                       id="hwIdrac" {% if data.get('scope_hw_idrac') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwIdrac">
+                                    <strong>iDRAC 9+:</strong> Dell out-of-band management with Redfish API & Virtual Media license
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Network Design ──────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-diagram-3"></i> Network Design</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Define your network architecture.
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/plan/cloud-deployment-network-considerations?view=azloc-2601" target="_blank" class="text-info">Network requirements →</a>
+                    </p>
+
+                    {# Management Network #}
+                    <h6 class="text-info mt-2"><i class="bi bi-hdd-network"></i> Management Network</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label small">Subnet CIDR <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="scope_mgmt_cidr"
+                                   value="{{ data.get('scope_mgmt_cidr', '') }}" required placeholder="10.0.1.0/24">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">VLAN ID</label>
+                            <input type="number" class="form-control form-control-sm" name="scope_mgmt_vlan"
+                                   value="{{ data.get('scope_mgmt_vlan', '') }}" placeholder="(native)">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Default Gateway <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="scope_mgmt_gateway"
+                                   value="{{ data.get('scope_mgmt_gateway', '') }}" required placeholder="10.0.1.1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">DNS Servers <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="scope_dns_servers"
+                                   value="{{ data.get('scope_dns_servers', '') }}" required placeholder="10.0.0.5, 10.0.0.6">
+                        </div>
+                    </div>
+
+                    {# Storage Network 1 #}
+                    <h6 class="text-info"><i class="bi bi-device-hdd"></i> Storage Network 1 (RDMA)</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small">Subnet CIDR</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_storage1_cidr"
+                                   value="{{ data.get('scope_storage1_cidr', '') }}" placeholder="10.0.11.0/24">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">VLAN ID</label>
+                            <input type="number" class="form-control form-control-sm" name="scope_storage1_vlan"
+                                   value="{{ data.get('scope_storage1_vlan', '') }}" placeholder="711">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">RDMA Protocol</label>
+                            <select class="form-select form-select-sm" name="scope_storage1_rdma">
+                                {% for opt in ["RoCEv2", "iWARP", "None"] %}
+                                <option value="{{ opt }}" {% if data.get('scope_storage1_rdma', 'RoCEv2') == opt %}selected{% endif %}>{{ opt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Jumbo Frames (MTU)</label>
+                            <select class="form-select form-select-sm" name="scope_storage1_mtu">
+                                <option value="9014" {% if data.get('scope_storage1_mtu', '9014') == '9014' %}selected{% endif %}>9014 (recommended)</option>
+                                <option value="1500" {% if data.get('scope_storage1_mtu') == '1500' %}selected{% endif %}>1500 (standard)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {# Storage Network 2 #}
+                    <h6 class="text-info"><i class="bi bi-device-hdd"></i> Storage Network 2 (RDMA)</h6>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small">Subnet CIDR</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_storage2_cidr"
+                                   value="{{ data.get('scope_storage2_cidr', '') }}" placeholder="10.0.12.0/24">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">VLAN ID</label>
+                            <input type="number" class="form-control form-control-sm" name="scope_storage2_vlan"
+                                   value="{{ data.get('scope_storage2_vlan', '') }}" placeholder="712">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">RDMA Protocol</label>
+                            <select class="form-select form-select-sm" name="scope_storage2_rdma">
+                                {% for opt in ["RoCEv2", "iWARP", "None"] %}
+                                <option value="{{ opt }}" {% if data.get('scope_storage2_rdma', 'RoCEv2') == opt %}selected{% endif %}>{{ opt }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Jumbo Frames (MTU)</label>
+                            <select class="form-select form-select-sm" name="scope_storage2_mtu">
+                                <option value="9014" {% if data.get('scope_storage2_mtu', '9014') == '9014' %}selected{% endif %}>9014 (recommended)</option>
+                                <option value="1500" {% if data.get('scope_storage2_mtu') == '1500' %}selected{% endif %}>1500 (standard)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── IP Address Planning ─────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-123"></i> IP Address Planning</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Reserve contiguous IP addresses for the cluster.
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/plan/cloud-deployment-network-considerations?view=azloc-2601#network-ip-requirements" target="_blank" class="text-info">IP requirements →</a>
+                    </p>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label small">Cluster IP <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="scope_cluster_ip"
+                                   value="{{ data.get('scope_cluster_ip', '') }}" required placeholder="10.0.1.100">
+                            <div class="form-text">Static IP for the Windows Failover Cluster.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Infrastructure IP Pool Start <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="scope_infra_ip_start"
+                                   value="{{ data.get('scope_infra_ip_start', '') }}" required placeholder="10.0.1.200">
+                            <div class="form-text">6 contiguous IPs for internal Azure Local services.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">Infrastructure IP Pool End <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="scope_infra_ip_end"
+                                   value="{{ data.get('scope_infra_ip_end', '') }}" required placeholder="10.0.1.205">
+                        </div>
+                    </div>
+                    <h6 class="text-secondary small">Per-Node Management IPs</h6>
+                    <div class="row g-2">
+                        {% set node_count = (data.get('server_count', '2') | int) %}
+                        {% for i in range(1, node_count + 1) %}
+                        <div class="col-md-3">
+                            <label class="form-label small">Node {{ i }} Mgmt IP</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_node_{{ i }}_mgmt_ip"
+                                   value="{{ data.get('scope_node_' ~ i ~ '_mgmt_ip', '') }}" placeholder="10.0.1.{{ 10 + i }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <h6 class="text-secondary small mt-3">Per-Node iDRAC IPs</h6>
+                    <div class="row g-2">
+                        {% for i in range(1, node_count + 1) %}
+                        <div class="col-md-3">
+                            <label class="form-label small">Node {{ i }} iDRAC IP</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_node_{{ i }}_idrac_ip"
+                                   value="{{ data.get('scope_node_' ~ i ~ '_idrac_ip', '') }}" placeholder="10.0.0.{{ 10 + i }}">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            {# ── Identity & Active Directory ─────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-lock"></i> Identity &amp; Active Directory</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Choose between AD-joined or AD-less deployment.
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/plan/deployment-checklist?view=azloc-2601#prepare-active-directory" target="_blank" class="text-info">AD preparation →</a>
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Deployment Mode <span class="text-danger">*</span></label>
+                            <select class="form-select" name="scope_ad_mode" id="scopeAdMode">
+                                <option value="domain_joined" {% if data.get('scope_ad_mode', 'domain_joined') == 'domain_joined' %}selected{% endif %}>Domain-joined (Active Directory)</option>
+                                <option value="ad_less" {% if data.get('scope_ad_mode') == 'ad_less' %}selected{% endif %}>AD-less (no domain)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="domainFqdnField">
+                            <label class="form-label">Domain FQDN</label>
+                            <input type="text" class="form-control" name="scope_domain_fqdn"
+                                   value="{{ data.get('scope_domain_fqdn', '') }}" placeholder="corp.local">
+                        </div>
+                        <div class="col-md-4" id="ouPathField">
+                            <label class="form-label">OU Path</label>
+                            <input type="text" class="form-control" name="scope_ou_path"
+                                   value="{{ data.get('scope_ou_path', '') }}" placeholder="OU=AzureLocal,DC=corp,DC=local">
+                            <div class="form-text">Pre-created OU for Azure Local computer objects.</div>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="scope_ad_prepared" value="true"
+                                   id="adPrepared" {% if data.get('scope_ad_prepared') == 'true' %}checked{% endif %}>
+                            <label class="form-check-label" for="adPrepared">
+                                I have completed Active Directory preparation (created OU, granted permissions, configured DNS A records)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Outbound Connectivity ───────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-globe"></i> Outbound Connectivity</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Azure Local requires outbound HTTPS connectivity to Azure services.
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/concepts/firewall-requirements?view=azloc-2601" target="_blank" class="text-info">Firewall requirements →</a>
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Connectivity Method</label>
+                            <select class="form-select" name="scope_connectivity" id="scopeConnectivity">
+                                <option value="direct" {% if data.get('scope_connectivity', 'direct') == 'direct' %}selected{% endif %}>Direct (no proxy)</option>
+                                <option value="proxy" {% if data.get('scope_connectivity') == 'proxy' %}selected{% endif %}>HTTPS Proxy</option>
+                                <option value="private_link" {% if data.get('scope_connectivity') == 'private_link' %}selected{% endif %}>Azure Private Link</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8" id="proxyUrlField">
+                            <label class="form-label">HTTPS Proxy URL</label>
+                            <input type="text" class="form-control" name="scope_proxy_url"
+                                   value="{{ data.get('scope_proxy_url', '') }}" placeholder="https://proxy.corp.local:8080">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="scope_firewall_ready" value="true"
+                                   id="fwReady" {% if data.get('scope_firewall_ready') == 'true' %}checked{% endif %}>
+                            <label class="form-check-label" for="fwReady">
+                                I have allowed outbound HTTPS (443) to Azure Arc, Azure Resource Manager, and required Microsoft endpoints
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Storage Design ──────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-device-hdd"></i> Storage Design</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Azure Local uses Storage Spaces Direct (S2D). All data drives must be empty (no partitions/RAID). Drives should be the same type across all nodes.
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/concepts/system-requirements?view=azloc-2601#storage-requirements" target="_blank" class="text-info">Storage requirements →</a>
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Storage Type</label>
+                            <select class="form-select" name="scope_storage_type">
+                                <option value="all_nvme" {% if data.get('scope_storage_type', 'all_nvme') == 'all_nvme' %}selected{% endif %}>All-NVMe (best performance)</option>
+                                <option value="all_ssd" {% if data.get('scope_storage_type') == 'all_ssd' %}selected{% endif %}>All-SSD (SATA/SAS)</option>
+                                <option value="nvme_ssd" {% if data.get('scope_storage_type') == 'nvme_ssd' %}selected{% endif %}>NVMe cache + SSD capacity</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Data Drives Per Node</label>
+                            <input type="number" class="form-control" name="scope_drives_per_node" min="2" max="24"
+                                   value="{{ data.get('scope_drives_per_node', '4') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Cluster Witness</label>
+                            <select class="form-select" name="scope_witness_type">
+                                <option value="cloud" {% if data.get('scope_witness_type', 'cloud') == 'cloud' %}selected{% endif %}>Cloud Witness (Azure Storage Account)</option>
+                                <option value="fileshare" {% if data.get('scope_witness_type') == 'fileshare' %}selected{% endif %}>File Share Witness</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="scope_drives_no_raid" value="true"
+                                   id="drivesNoRaid" {% if data.get('scope_drives_no_raid') == 'true' %}checked{% endif %}>
+                            <label class="form-check-label" for="drivesNoRaid">
+                                I confirm data drives have no existing RAID configuration (passthrough / HBA mode required)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Scope Summary ───────────────────────────── #}
+            <div class="card mb-4 border-info">
+                <div class="card-header bg-transparent text-info"><i class="bi bi-list-check"></i> Scope Summary Checklist</div>
+                <div class="card-body">
+                    <p class="small text-secondary mb-2">Confirm that you have completed the following preparation steps from the
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/plan/deployment-checklist?view=azloc-2601" target="_blank" class="text-info">Microsoft deployment checklist</a>:</p>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_hardware" value="true"
+                                       id="chkHw" {% if data.get('scope_check_hardware') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkHw">Hardware meets system requirements</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_network" value="true"
+                                       id="chkNet" {% if data.get('scope_check_network') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkNet">Network switches configured (VLANs, MTU)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_dns" value="true"
+                                       id="chkDns" {% if data.get('scope_check_dns') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkDns">DNS records created (forward + reverse)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_firewall" value="true"
+                                       id="chkFw" {% if data.get('scope_check_firewall') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkFw">Firewall rules allow outbound Azure traffic</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_azure_sub" value="true"
+                                       id="chkSub" {% if data.get('scope_check_azure_sub') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkSub">Azure subscription with required RBAC roles</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_providers" value="true"
+                                       id="chkProv" {% if data.get('scope_check_providers') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkProv">Azure resource providers registered (HCI, Arc, etc.)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_iso" value="true"
+                                       id="chkIso" {% if data.get('scope_check_iso') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkIso">Azure Local OS ISO available on a file server</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_idrac" value="true"
+                                       id="chkIdrac" {% if data.get('scope_check_idrac') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkIdrac">iDRAC accessible and credentials known</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="mt-4">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Global Settings</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Azure Account</button>
             </div>
         </form>
     </div>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+    // Toggle AD fields visibility based on deployment mode
+    document.getElementById('scopeAdMode').addEventListener('change', function() {
+        const isDomain = this.value === 'domain_joined';
+        document.getElementById('domainFqdnField').style.display = isDomain ? '' : 'none';
+        document.getElementById('ouPathField').style.display = isDomain ? '' : 'none';
+    });
+    // Toggle proxy URL visibility
+    document.getElementById('scopeConnectivity').addEventListener('change', function() {
+        document.getElementById('proxyUrlField').style.display = this.value === 'proxy' ? '' : 'none';
+    });
+    // Set initial visibility
+    document.getElementById('scopeAdMode').dispatchEvent(new Event('change'));
+    document.getElementById('scopeConnectivity').dispatchEvent(new Event('change'));
+</script>
 {% endblock %}

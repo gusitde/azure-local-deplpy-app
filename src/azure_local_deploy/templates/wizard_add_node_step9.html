@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Add Node – Step 9: Post-Add Options{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Existing Cluster", "Firmware & BIOS", "New Server iDRAC", "Network Config", "Time & NTP", "Security & Checks", "Post-Add Options"] %}
+{% set current_step = 9 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-check2-all"></i> Step 9: Post-Add Options</h3>
+        <p class="text-secondary mb-4">
+            Configure tasks that run <strong>after</strong> the node is added to the cluster.
+        </p>
+        <form method="POST">
+
+            {# ── Quorum Witness ──────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-cloud-check"></i> Quorum Witness</div>
+                <div class="card-body">
+                    <p class="text-secondary small">
+                        When expanding from 1 to 2 nodes, a quorum witness is required.
+                        The pipeline will check and warn if no witness is configured.
+                        Configure cloud witness using the <code>cloud-witness</code> CLI command
+                        or via this wizard's new-cluster flow.
+                    </p>
+                </div>
+            </div>
+
+            {# ── Storage Rebalance ───────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-hdd-stack"></i> Storage Rebalance Monitoring</div>
+                <div class="card-body">
+                    <p class="text-secondary small">
+                        After adding a node, Storage Spaces Direct redistributes data across the new topology.
+                        The pipeline will monitor active storage rebalance jobs and report progress.
+                        This is fully automatic and may take hours depending on data volume.
+                    </p>
+                </div>
+            </div>
+
+            {# ── Storage Intent ──────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-ethernet"></i> Network ATC Storage Intent</div>
+                <div class="card-body">
+                    <p class="text-secondary small">
+                        When expanding from single-node to multi-node, storage network intents must
+                        be configured via Network ATC. The pipeline will check and recommend configuration
+                        if no storage intent is found.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=8) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Review Configuration</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

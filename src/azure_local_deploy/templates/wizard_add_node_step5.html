@@ -1,37 +1,70 @@
 {% extends "base.html" %}
-{% block title %}Add Node – Step 5: Time & NTP{% endblock %}
+{% block title %}Add Node – Step 5: New Server iDRAC{% endblock %}
 {% block content %}
-{% set steps = ["Azure Account", "Existing Cluster", "New Server iDRAC", "Network Config", "Time & NTP"] %}
+{% set steps = ["Scope & Design", "Azure Account", "Existing Cluster", "Firmware & BIOS", "New Server iDRAC", "Network Config", "Time & NTP", "Security & Checks", "Post-Add Options"] %}
 {% set current_step = 5 %}
+{% set server_count = (data.get('server_count', '1') | int) %}
 <div class="row g-0">
     <div class="col-md-3 col-lg-2">
         {% include "wizard_sidebar.html" with context %}
     </div>
     <div class="col-md-9 col-lg-10 p-4">
-        <h3 class="mb-1">Step 5: Time & NTP Configuration</h3>
-        <p class="text-secondary mb-4">The new node must match the existing cluster's time settings exactly.</p>
+        <h3 class="mb-1">Step 5: New Server iDRAC Credentials</h3>
+        <p class="text-secondary mb-4">Enter iDRAC and host details for the new node(s) being added.</p>
         <form method="POST">
-            <div class="row g-3">
-                <div class="col-md-8">
-                    <label class="form-label">NTP Servers <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="ntp_servers"
-                           value="{{ data.get('ntp_servers', 'time.windows.com, pool.ntp.org') }}" required>
-                    <div class="form-text">Comma-separated. Must match the existing cluster's NTP configuration.</div>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Timezone</label>
-                    <select class="form-select" name="timezone">
-                        {% for tz in ["UTC", "Eastern Standard Time", "Central Standard Time", "Mountain Standard Time",
-                                       "Pacific Standard Time", "GMT Standard Time", "W. Europe Standard Time",
-                                       "AUS Eastern Standard Time", "Singapore Standard Time", "Tokyo Standard Time"] %}
-                        <option value="{{ tz }}" {% if data.get('timezone', 'UTC') == tz %}selected{% endif %}>{{ tz }}</option>
-                        {% endfor %}
-                    </select>
+            {% for i in range(1, server_count + 1) %}
+            {% set p = 'server_' ~ i ~ '_' %}
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-hdd-rack"></i> New Node {{ i }}</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">iDRAC IP / Hostname <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="{{ p }}idrac_host"
+                                   value="{{ data.get(p ~ 'idrac_host', '') }}" required placeholder="10.0.0.{{ 10 + i }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">iDRAC Username</label>
+                            <input type="text" class="form-control" name="{{ p }}idrac_user"
+                                   value="{{ data.get(p ~ 'idrac_user', 'root') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">iDRAC Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" name="{{ p }}idrac_password"
+                                   value="{{ data.get(p ~ 'idrac_password', '') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Host Management IP <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="{{ p }}host_ip"
+                                   value="{{ data.get(p ~ 'host_ip', '') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Host Username</label>
+                            <input type="text" class="form-control" name="{{ p }}host_user"
+                                   value="{{ data.get(p ~ 'host_user', 'Administrator') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Host Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" name="{{ p }}host_password"
+                                   value="{{ data.get(p ~ 'host_password', '') }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">SSH Port</label>
+                            <input type="number" class="form-control" name="{{ p }}ssh_port"
+                                   value="{{ data.get(p ~ 'ssh_port', '22') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">NIC Count</label>
+                            <input type="number" class="form-control" name="{{ p }}nic_count" min="1" max="8"
+                                   value="{{ data.get(p ~ 'nic_count', '3') }}">
+                        </div>
+                    </div>
                 </div>
             </div>
+            {% endfor %}
             <div class="mt-4 d-flex gap-2">
                 <a href="{{ url_for('wizard_step', step=4) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
-                <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Review Configuration</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Network Config</button>
             </div>
         </form>
     </div>

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Add Node – Step 8: Security &amp; Pre-Add Checks{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Existing Cluster", "Firmware & BIOS", "New Server iDRAC", "Network Config", "Time & NTP", "Security & Checks", "Post-Add Options"] %}
+{% set current_step = 8 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-shield-check"></i> Step 8: Security &amp; Pre-Add Checks</h3>
+        <p class="text-secondary mb-4">
+            Security profile must match the existing cluster. The pipeline also runs
+            <a href="https://learn.microsoft.com/en-us/azure/azure-local/manage/add-node" target="_blank" class="text-info">pre-add validations</a>
+            automatically.
+        </p>
+        <form method="POST">
+
+            {# ── Security Profile ────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-lock"></i> Security Profile</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Security Profile</label>
+                            <select class="form-select" name="security_profile">
+                                <option value="recommended" {% if data.get('security_profile', 'recommended') == 'recommended' %}selected{% endif %}>Recommended (match existing cluster)</option>
+                                <option value="customized" {% if data.get('security_profile') == 'customized' %}selected{% endif %}>Customized</option>
+                            </select>
+                            <div class="form-text">This must match the existing cluster's security profile.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Automated Pre-Add Checks ─────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-list-check"></i> Automated Pre-Add Validations</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-2">The pipeline will automatically validate:</p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check-circle text-success"></i> <strong>OS version match</strong> – New node must run the same OS build as the cluster</li>
+                        <li><i class="bi bi-check-circle text-success"></i> <strong>Arc registration parity</strong> – Same subscription, resource group, region, tenant</li>
+                        <li><i class="bi bi-check-circle text-success"></i> <strong>Azure role assignments</strong> – HCI Device Management, Key Vault Secrets User</li>
+                        <li><i class="bi bi-check-circle text-success"></i> <strong>Reserved IP ranges</strong> – No overlap with Kubernetes CIDRs (10.96.0.0/12, 10.244.0.0/16)</li>
+                        <li><i class="bi bi-check-circle text-success"></i> <strong>DNS resolution</strong> – AD domain, Azure AD, Azure Resource Manager</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=7) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Post-Add Options</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Rebuild Cluster – Step 5: Discovery & Planning{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-3 wizard-sidebar py-4">
+        <h6 class="text-uppercase text-secondary px-3 mb-3">Rebuild Wizard</h6>
+        <div class="step completed"><span class="step-num">1</span> AI Provider</div>
+        <div class="step completed"><span class="step-num">2</span> Source Cluster</div>
+        <div class="step completed"><span class="step-num">3</span> Migration Target</div>
+        <div class="step completed"><span class="step-num">4</span> Backup Settings</div>
+        <div class="step active"><span class="step-num">5</span> Discovery & Planning</div>
+        <div class="step"><span class="step-num">6</span> Options & Review</div>
+        <div class="step"><span class="step-num">7</span> Execute</div>
+    </div>
+    <div class="col-md-9 py-4">
+        <h3 class="mb-4"><i class="bi bi-search"></i> Step 5: Discovery & AI Planning</h3>
+        <p class="text-secondary">Connect to the source cluster to discover VMs and generate an AI-assisted migration plan.</p>
+        <form method="post">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-diagram-3"></i> Discovered Workloads</div>
+                <div class="card-body">
+                    <p class="text-secondary">Click "Run Discovery" to connect to the source cluster and enumerate VMs.</p>
+                    <button type="button" id="discoverBtn" class="btn btn-outline-info mb-3">
+                        <i class="bi bi-search"></i> Run Discovery
+                    </button>
+                    <div id="discovery-spinner" class="d-none mb-3">
+                        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                        <span class="text-info ms-2">Connecting to cluster...</span>
+                    </div>
+                    <div id="discovery-results" class="d-none">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>VM Name</th>
+                                        <th>Node</th>
+                                        <th>State</th>
+                                        <th>Category</th>
+                                        <th>CPU</th>
+                                        <th>Memory (GB)</th>
+                                        <th>Disk (GB)</th>
+                                        <th>Dependencies</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vm-table-body"></tbody>
+                            </table>
+                        </div>
+                        <p class="text-success mt-2" id="discovery-summary"></p>
+                    </div>
+                    <div id="discovery-error" class="alert alert-danger d-none"></div>
+                    <!-- Store discovered VM count for the form -->
+                    <input type="hidden" name="discovered_vm_count" id="vmCount" value="{{ data.get('discovered_vm_count', '0') }}">
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-robot"></i> AI Migration Plan</div>
+                <div class="card-body">
+                    <button type="button" id="planBtn" class="btn btn-outline-warning mb-3" disabled>
+                        <i class="bi bi-stars"></i> Generate AI Plan
+                    </button>
+                    <div id="plan-spinner" class="d-none mb-3">
+                        <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+                        <span class="text-warning ms-2">AI is analyzing workloads...</span>
+                    </div>
+                    <div id="plan-results" class="d-none">
+                        <pre class="log-output" id="plan-content" style="max-height: 400px;"></pre>
+                    </div>
+                    <div id="plan-error" class="alert alert-warning d-none"></div>
+                    <input type="hidden" name="ai_plan_generated" id="planGenerated" value="{{ data.get('ai_plan_generated', 'false') }}">
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/wizard/rebuild/step/4" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Options & Review</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const discoverBtn = document.getElementById('discoverBtn');
+    const planBtn = document.getElementById('planBtn');
+
+    discoverBtn.addEventListener('click', async () => {
+        document.getElementById('discovery-spinner').classList.remove('d-none');
+        document.getElementById('discovery-results').classList.add('d-none');
+        document.getElementById('discovery-error').classList.add('d-none');
+        discoverBtn.disabled = true;
+
+        try {
+            const resp = await fetch('/api/v1/discover', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    host: '{{ data.get("source_host", "") }}',
+                    username: '{{ data.get("source_username", "Administrator") }}',
+                    password: '{{ data.get("source_password", "") }}',
+                    ssh_port: parseInt('{{ data.get("source_ssh_port", "22") }}'),
+                }),
+            });
+            const result = await resp.json();
+            document.getElementById('discovery-spinner').classList.add('d-none');
+
+            if (result.status === 'success' && result.data) {
+                const tbody = document.getElementById('vm-table-body');
+                tbody.innerHTML = '';
+                result.data.forEach(vm => {
+                    tbody.innerHTML += `<tr>
+                        <td>${vm.name}</td><td>${vm.node}</td><td>${vm.state}</td>
+                        <td><span class="badge bg-secondary">${vm.category}</span></td>
+                        <td>${vm.cpu_count}</td><td>${vm.memory_gb}</td><td>${vm.total_disk_gb}</td>
+                        <td>${vm.depends_on.join(', ') || '—'}</td>
+                    </tr>`;
+                });
+                document.getElementById('vmCount').value = result.data.length;
+                document.getElementById('discovery-summary').textContent = result.message;
+                document.getElementById('discovery-results').classList.remove('d-none');
+                planBtn.disabled = false;
+            } else {
+                document.getElementById('discovery-error').textContent = result.message || 'Discovery failed';
+                document.getElementById('discovery-error').classList.remove('d-none');
+            }
+        } catch (err) {
+            document.getElementById('discovery-spinner').classList.add('d-none');
+            document.getElementById('discovery-error').textContent = err.message;
+            document.getElementById('discovery-error').classList.remove('d-none');
+        }
+        discoverBtn.disabled = false;
+    });
+
+    planBtn.addEventListener('click', async () => {
+        document.getElementById('plan-spinner').classList.remove('d-none');
+        document.getElementById('plan-results').classList.add('d-none');
+        document.getElementById('plan-error').classList.add('d-none');
+        planBtn.disabled = true;
+
+        try {
+            const resp = await fetch('/api/v1/ai/plan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    host: '{{ data.get("source_host", "") }}',
+                    username: '{{ data.get("source_username", "Administrator") }}',
+                    password: '{{ data.get("source_password", "") }}',
+                }),
+            });
+            const result = await resp.json();
+            document.getElementById('plan-spinner').classList.add('d-none');
+
+            if (result.status === 'success') {
+                document.getElementById('plan-content').textContent = JSON.stringify(result.data, null, 2);
+                document.getElementById('plan-results').classList.remove('d-none');
+                document.getElementById('planGenerated').value = 'true';
+            } else {
+                document.getElementById('plan-error').textContent = result.message || 'AI planning failed';
+                document.getElementById('plan-error').classList.remove('d-none');
+            }
+        } catch (err) {
+            document.getElementById('plan-spinner').classList.add('d-none');
+            document.getElementById('plan-error').textContent = err.message;
+            document.getElementById('plan-error').classList.remove('d-none');
+        }
+        planBtn.disabled = false;
+    });
+</script>
+{% endblock %}

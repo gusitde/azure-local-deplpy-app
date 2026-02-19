@@ -1,4 +1,9 @@
-"""Remote command execution helpers (SSH / PowerShell over SSH)."""
+"""Remote command execution helpers (SSH / PowerShell over SSH).
+
+SECURITY NOTE: SSH host-key verification uses AutoAddPolicy for first-connect
+convenience in lab/deployment scenarios. In production, configure known_hosts
+or switch to paramiko.RejectPolicy and pre-populate host keys.
+"""
 
 from __future__ import annotations
 
@@ -7,6 +12,10 @@ import paramiko
 from azure_local_deploy.utils import get_logger, retry
 
 log = get_logger(__name__)
+
+# Allow override via environment variable for production
+import os
+_SSH_STRICT = os.environ.get("ALD_SSH_STRICT_HOST_KEYS", "").lower() == "true"
 
 
 @retry(max_attempts=3, delay_seconds=5)
@@ -28,9 +37,14 @@ def run_powershell(
     command = f"powershell.exe -NoProfile -NonInteractive -Command \"{script}\""
 
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    if _SSH_STRICT:
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(paramiko.RejectPolicy())
+    else:
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(host, port=port, username=user, password=password, timeout=15)
+        client.connect(host, port=port, username=user, password=password,
+                       timeout=15, banner_timeout=15, auth_timeout=15)
         log.debug("Running on %s: %s", host, command[:120])
         _, stdout, stderr = client.exec_command(command, timeout=timeout)
         exit_code = stdout.channel.recv_exit_status()
@@ -64,9 +78,14 @@ def run_powershell_script_file(
     remote_path = f"C:\\Temp\\{os.path.basename(local_script_path)}"
 
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    if _SSH_STRICT:
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(paramiko.RejectPolicy())
+    else:
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(host, port=port, username=user, password=password, timeout=15)
+        client.connect(host, port=port, username=user, password=password,
+                       timeout=15, banner_timeout=15, auth_timeout=15)
 
         # Ensure remote temp dir exists
         client.exec_command("powershell.exe -Command \"New-Item -ItemType Directory -Force -Path C:\\Temp\"")

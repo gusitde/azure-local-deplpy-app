@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}New Cluster – Step 10: Proxy Configuration{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
+{% set current_step = 10 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-globe2"></i> Step 10: Proxy Configuration</h3>
+        <p class="text-secondary mb-4">
+            If your network requires a proxy for internet access, configure it here. Leave blank for direct connectivity.
+        </p>
+        <form method="POST">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-hdd-network"></i> Proxy Settings</div>
+                <div class="card-body">
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Skip this step if your nodes have direct internet access. Only configure a proxy
+                        if nodes must go through a proxy to reach Azure endpoints. See
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/manage/configure-proxy-settings-23h2" target="_blank" class="text-info">proxy documentation</a>.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">HTTP Proxy</label>
+                            <input type="text" class="form-control" name="http_proxy"
+                                   value="{{ data.get('http_proxy', '') }}"
+                                   placeholder="http://proxy.corp.local:8080">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">HTTPS Proxy</label>
+                            <input type="text" class="form-control" name="https_proxy"
+                                   value="{{ data.get('https_proxy', '') }}"
+                                   placeholder="http://proxy.corp.local:8080">
+                            <div class="form-text">Often same as HTTP proxy.</div>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">No-Proxy (bypass list)</label>
+                            <input type="text" class="form-control" name="no_proxy"
+                                   value="{{ data.get('no_proxy', '') }}"
+                                   placeholder="localhost,127.0.0.1,.corp.local,10.0.0.0/8">
+                            <div class="form-text">Comma-separated addresses/CIDRs that bypass the proxy. Node IPs are added automatically.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=9) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Cluster Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

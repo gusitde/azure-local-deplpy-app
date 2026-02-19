@@ -1,70 +1,80 @@
 {% extends "base.html" %}
-{% block title %}Add Node – Step 3: New Server iDRAC{% endblock %}
+{% block title %}Add Node – Step 3: Existing Cluster{% endblock %}
 {% block content %}
-{% set steps = ["Azure Account", "Existing Cluster", "New Server iDRAC", "Network Config", "Time & NTP"] %}
+{% set steps = ["Scope & Design", "Azure Account", "Existing Cluster", "Firmware & BIOS", "New Server iDRAC", "Network Config", "Time & NTP", "Security & Checks", "Post-Add Options"] %}
 {% set current_step = 3 %}
-{% set server_count = (data.get('server_count', '1') | int) %}
 <div class="row g-0">
     <div class="col-md-3 col-lg-2">
         {% include "wizard_sidebar.html" with context %}
     </div>
     <div class="col-md-9 col-lg-10 p-4">
-        <h3 class="mb-1">Step 3: New Server iDRAC Credentials</h3>
-        <p class="text-secondary mb-4">Enter iDRAC and host details for the new node(s) being added.</p>
+        <h3 class="mb-1">Step 3: Existing Cluster</h3>
+        <p class="text-secondary mb-4">Identify the cluster you want to add a node to. This can be a multi-node or single-node cluster.</p>
         <form method="POST">
-            {% for i in range(1, server_count + 1) %}
-            {% set p = 'server_' ~ i ~ '_' %}
-            <div class="card mb-3">
-                <div class="card-header"><i class="bi bi-hdd-rack"></i> New Node {{ i }}</div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Existing Cluster Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="existing_cluster_name"
+                           value="{{ data.get('existing_cluster_name', '') }}" required
+                           placeholder="azlocal-cluster-01">
+                    <div class="form-text">The Azure resource name of the existing Azure Local cluster.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Cluster Resource Group</label>
+                    <input type="text" class="form-control" name="existing_cluster_rg"
+                           value="{{ data.get('existing_cluster_rg', data.get('resource_group', '')) }}"
+                           placeholder="Same as Azure config RG if blank">
+                    <div class="form-text">Leave blank to use the resource group from Step 1.</div>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Azure Local ISO URL <span class="text-danger">*</span></label>
+                    <input type="url" class="form-control" name="iso_url"
+                           value="{{ data.get('iso_url', '') }}" required
+                           placeholder="https://fileserver.corp.local/images/AzureLocal.iso">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Number of New Nodes</label>
+                    <input type="number" class="form-control" name="server_count" min="1" max="15"
+                           value="{{ data.get('server_count', '1') }}">
+                </div>
+            </div>
+
+            <!-- Existing Cluster Node Credentials -->
+            <div class="card bg-dark border-secondary mt-4">
+                <div class="card-header"><i class="bi bi-hdd-rack"></i> Existing Cluster Node Access</div>
                 <div class="card-body">
+                    <p class="text-secondary small mb-3">SSH credentials for an existing node in the cluster. Used for OS version matching, post-add quorum/storage checks, and cluster health validation.</p>
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <label class="form-label">iDRAC IP / Hostname <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="{{ p }}idrac_host"
-                                   value="{{ data.get(p ~ 'idrac_host', '') }}" required placeholder="10.0.0.{{ 10 + i }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">iDRAC Username</label>
-                            <input type="text" class="form-control" name="{{ p }}idrac_user"
-                                   value="{{ data.get(p ~ 'idrac_user', 'root') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">iDRAC Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="{{ p }}idrac_password"
-                                   value="{{ data.get(p ~ 'idrac_password', '') }}" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Host Management IP <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="{{ p }}host_ip"
-                                   value="{{ data.get(p ~ 'host_ip', '') }}" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Host Username</label>
-                            <input type="text" class="form-control" name="{{ p }}host_user"
-                                   value="{{ data.get(p ~ 'host_user', 'Administrator') }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Host Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="{{ p }}host_password"
-                                   value="{{ data.get(p ~ 'host_password', '') }}" required>
+                            <label class="form-label">Existing Node IP <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="existing_node_ip"
+                                   value="{{ data.get('existing_node_ip', '') }}" required
+                                   placeholder="10.0.1.10">
+                            <div class="form-text">Management IP of any existing cluster member.</div>
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" class="form-control" name="existing_node_user"
+                                   value="{{ data.get('existing_node_user', 'Administrator') }}"
+                                   placeholder="Administrator">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Password <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" name="existing_node_password"
+                                   value="{{ data.get('existing_node_password', '') }}" required>
+                        </div>
+                        <div class="col-md-1">
                             <label class="form-label">SSH Port</label>
-                            <input type="number" class="form-control" name="{{ p }}ssh_port"
-                                   value="{{ data.get(p ~ 'ssh_port', '22') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">NIC Count</label>
-                            <input type="number" class="form-control" name="{{ p }}nic_count" min="1" max="8"
-                                   value="{{ data.get(p ~ 'nic_count', '3') }}">
+                            <input type="number" class="form-control" name="existing_node_ssh_port"
+                                   value="{{ data.get('existing_node_ssh_port', '22') }}">
                         </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
+
             <div class="mt-4 d-flex gap-2">
                 <a href="{{ url_for('wizard_step', step=2) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
-                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Network Config</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Firmware & BIOS</button>
             </div>
         </form>
     </div>

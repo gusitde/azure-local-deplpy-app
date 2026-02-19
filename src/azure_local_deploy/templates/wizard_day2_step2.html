@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Day 2 – Step 2: VM Images{% endblock %}
+{% block content %}
+{% set steps = ["Logical Networks", "VM Images", "Test VMs"] %}
+{% set current_step = 2 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-disc"></i> Step 2: VM Images</h3>
+        <p class="text-secondary mb-4">
+            Upload operating system images that will be used to create virtual machines.
+            Provide a UNC path (e.g. <code>\\fileserver\images\ws2025.vhdx</code>) or an HTTP URL
+            to the VHDX file. See
+            <a href="https://learn.microsoft.com/en-us/azure/azure-local/manage/virtual-machine-image-azure-marketplace" target="_blank" class="text-info">VM images documentation</a>.
+        </p>
+        <form method="POST">
+            <!-- Windows Server 2025 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary bg-opacity-25"><i class="bi bi-windows"></i> Windows Server 2025</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Image Name</label>
+                            <input type="text" class="form-control" name="image1_name"
+                                   value="{{ data.get('image1_name', 'windows-server-2025') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">OS Type</label>
+                            <select class="form-select" name="image1_os_type">
+                                <option value="Windows" {% if data.get('image1_os_type', 'Windows') == 'Windows' %}selected{% endif %}>Windows</option>
+                                <option value="Linux" {% if data.get('image1_os_type') == 'Linux' %}selected{% endif %}>Linux</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Image Path (UNC or HTTP URL to VHDX)</label>
+                            <input type="text" class="form-control" name="image1_path"
+                                   value="{{ data.get('image1_path', '') }}"
+                                   placeholder="\\\\fileserver\\images\\ws2025.vhdx or https://storage.blob.core.windows.net/images/ws2025.vhdx">
+                            <div class="form-text">
+                                <i class="bi bi-info-circle"></i> The image must be accessible from the cluster nodes. Use a Gen 2 VHDX file for best compatibility.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Windows 11 -->
+            <div class="card mb-4">
+                <div class="card-header bg-info bg-opacity-25"><i class="bi bi-laptop"></i> Windows 11 Enterprise</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Image Name</label>
+                            <input type="text" class="form-control" name="image2_name"
+                                   value="{{ data.get('image2_name', 'windows-11-enterprise') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">OS Type</label>
+                            <select class="form-select" name="image2_os_type">
+                                <option value="Windows" {% if data.get('image2_os_type', 'Windows') == 'Windows' %}selected{% endif %}>Windows</option>
+                                <option value="Linux" {% if data.get('image2_os_type') == 'Linux' %}selected{% endif %}>Linux</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Image Path (UNC or HTTP URL to VHDX)</label>
+                            <input type="text" class="form-control" name="image2_path"
+                                   value="{{ data.get('image2_path', '') }}"
+                                   placeholder="\\\\fileserver\\images\\win11-ent.vhdx or https://storage.blob.core.windows.net/images/win11.vhdx">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_day2_step', step=1) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary">Next: Test VMs <i class="bi bi-arrow-right"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

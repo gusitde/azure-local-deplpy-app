@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}New Cluster – Step 8: Security &amp; AD{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
+{% set current_step = 8 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-shield-lock"></i> Step 8: Security &amp; Active Directory</h3>
+        <p class="text-secondary mb-4">
+            Configure <a href="https://learn.microsoft.com/en-us/azure/azure-local/concepts/security-features-23h2" target="_blank" class="text-info">security settings</a>
+            and Active Directory preparation for Azure Local.
+        </p>
+        <form method="POST">
+
+            {# ── Security Profile ────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-check"></i> Security Profile</div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        Microsoft recommends the <strong>Recommended</strong> profile for production.
+                        All 10 security settings are enforced. Choose <strong>Customized</strong> to
+                        selectively disable settings.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Security Profile <span class="text-danger">*</span></label>
+                            <select class="form-select" name="security_profile" id="secProfile"
+                                    onchange="document.getElementById('customSec').style.display = this.value === 'customized' ? 'block' : 'none'">
+                                <option value="recommended" {% if data.get('security_profile', 'recommended') == 'recommended' %}selected{% endif %}>Recommended (all enabled)</option>
+                                <option value="customized" {% if data.get('security_profile') == 'customized' %}selected{% endif %}>Customized</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="customSec" class="mt-3" style="display: {% if data.get('security_profile') == 'customized' %}block{% else %}none{% endif %}">
+                        <div class="row g-2">
+                            {% for name, label in [
+                                ("sec_hvci", "HVCI / VBS Protection"),
+                                ("sec_drtm", "DRTM Protection"),
+                                ("sec_credential_guard", "Credential Guard"),
+                                ("sec_smb_signing", "SMB Signing"),
+                                ("sec_smb_encryption", "SMB Cluster Encryption"),
+                                ("sec_side_channel", "Side-Channel Mitigation"),
+                                ("sec_bitlocker_boot", "BitLocker (Boot Volume)"),
+                                ("sec_bitlocker_data", "BitLocker (Data Volumes)"),
+                                ("sec_wdac", "WDAC Enforcement"),
+                                ("sec_drift_control", "Drift Control Enforcement"),
+                            ] %}
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="{{ name }}" value="true"
+                                           id="{{ name }}" {% if data.get(name, 'true') == 'true' %}checked{% endif %}>
+                                    <label class="form-check-label" for="{{ name }}">{{ label }}</label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Active Directory ─────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-diagram-3"></i> Active Directory Preparation</div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        If deploying with AD, the pipeline will prepare the OU, create the deployment user,
+                        and block GPO inheritance using
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/deploy/deployment-prep-active-directory" target="_blank" class="text-info">New-HciAdObjectsPreCreation</a>.
+                        Leave blank for AD-less deployment.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" name="ad_enabled" value="true"
+                                       id="adEnabled" {% if data.get('ad_enabled', 'true') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="adEnabled">Enable AD Integration</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">AD OU Name</label>
+                            <input type="text" class="form-control" name="ad_ou_name"
+                                   value="{{ data.get('ad_ou_name', 'AzureLocal') }}" placeholder="AzureLocal">
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Domain Controller Host</label>
+                            <input type="text" class="form-control" name="ad_dc_host"
+                                   value="{{ data.get('ad_dc_host', '') }}" placeholder="dc01.corp.local or 10.0.0.5">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">DC Admin User</label>
+                            <input type="text" class="form-control" name="ad_dc_user"
+                                   value="{{ data.get('ad_dc_user', 'Administrator') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">DC Admin Password</label>
+                            <input type="password" class="form-control" name="ad_dc_password"
+                                   value="{{ data.get('ad_dc_password', '') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Deployment User</label>
+                            <input type="text" class="form-control" name="ad_deployment_user"
+                                   value="{{ data.get('ad_deployment_user', '') }}" placeholder="azloc-deploy">
+                            <div class="form-text">User created in the OU for deployment.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Deployment Password</label>
+                            <input type="password" class="form-control" name="ad_deployment_password"
+                                   value="{{ data.get('ad_deployment_password', '') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=7) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Key Vault &amp; Witness</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

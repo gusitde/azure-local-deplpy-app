@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Rebuild Cluster – Step 7: Execute{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-3 wizard-sidebar py-4">
+        <h6 class="text-uppercase text-secondary px-3 mb-3">Rebuild Wizard</h6>
+        <div class="step completed"><span class="step-num">1</span> AI Provider</div>
+        <div class="step completed"><span class="step-num">2</span> Source Cluster</div>
+        <div class="step completed"><span class="step-num">3</span> Migration Target</div>
+        <div class="step completed"><span class="step-num">4</span> Backup Settings</div>
+        <div class="step completed"><span class="step-num">5</span> Discovery & Planning</div>
+        <div class="step completed"><span class="step-num">6</span> Options & Review</div>
+        <div class="step active"><span class="step-num">7</span> Execute</div>
+    </div>
+    <div class="col-md-9 py-4">
+        <h3 class="mb-4"><i class="bi bi-play-circle"></i> Step 7: Execute Rebuild Pipeline</h3>
+
+        <!-- Final confirmation -->
+        <div class="card border-danger mb-4" id="confirm-card">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle-fill"></i> Confirm Rebuild
+            </div>
+            <div class="card-body">
+                <p class="text-warning">
+                    <strong>This is a destructive operation.</strong> The pipeline will:
+                </p>
+                <ul>
+                    {% if data.get('backup_enabled', 'true') == 'true' %}
+                    <li>Back up VMs to <code>{{ data.get('backup_path', 'configured path') }}</code></li>
+                    {% else %}
+                    <li class="text-danger"><strong>NO BACKUP</strong> — data loss risk is HIGH</li>
+                    {% endif %}
+                    <li>Evacuate all workloads to <code>{{ data.get('target_host', '?') }}</code></li>
+                    <li>Destroy the failover cluster <code>{{ data.get('cluster_name', '?') }}</code></li>
+                    <li>Unregister from Azure</li>
+                    <li>Rebuild the cluster from scratch</li>
+                    {% if data.get('skip_move_back') != 'true' %}
+                    <li>Move workloads back to rebuilt cluster</li>
+                    {% endif %}
+                </ul>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="confirmRebuild">
+                    <label class="form-check-label" for="confirmRebuild">
+                        I understand this will <strong>destroy and rebuild</strong> the cluster
+                    </label>
+                </div>
+                <button type="button" id="startBtn" class="btn btn-danger btn-lg" disabled>
+                    <i class="bi bi-play-fill"></i> Start Rebuild Pipeline
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div id="progress-section" class="d-none">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-activity"></i> Pipeline Progress</span>
+                    <span class="badge" id="status-badge">Pending</span>
+                </div>
+                <div class="card-body">
+                    <!-- Stage progress -->
+                    <div id="stages-container">
+                        {% set stage_names = ['Discovery', 'Dependency Mapping', 'AI Planning', 'Backup VMs', 'Pre-Migration Validation', 'Evacuate Workloads', 'Verify Evacuation', 'Cluster Tear-Down', 'Cluster Rebuild', 'Day 2 Restore', 'Move-Back Workloads', 'Post-Move Validation', 'Verify Backups', 'Cleanup'] %}
+                        {% for name in stage_names %}
+                        <div class="progress-stage" id="stage-{{ loop.index0 }}">
+                            <div class="d-flex justify-content-between">
+                                <span><strong>{{ loop.index }}.</strong> {{ name }}</span>
+                                <span class="stage-status text-secondary">Pending</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Overall progress bar -->
+                    <div class="progress mt-3" style="height: 24px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                             id="overall-progress" role="progressbar" style="width: 0%;">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live log output -->
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-terminal"></i> Live Output</div>
+                <div class="card-body p-0">
+                    <div class="log-output" id="log-output" style="max-height: 400px;"></div>
+                </div>
+            </div>
+
+            <!-- Report (shown when complete) -->
+            <div id="report-section" class="d-none">
+                <div class="card mb-4">
+                    <div class="card-header"><i class="bi bi-file-earmark-text"></i> Rebuild Report</div>
+                    <div class="card-body">
+                        <pre id="report-content" class="log-output"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="button" id="abortBtn" class="btn btn-outline-danger">
+                    <i class="bi bi-stop-fill"></i> Abort Pipeline
+                </button>
+                <a href="/" class="btn btn-outline-secondary" id="homeBtn" style="display:none;">
+                    <i class="bi bi-house"></i> Return Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+    const confirmCb = document.getElementById('confirmRebuild');
+    const startBtn = document.getElementById('startBtn');
+    const abortBtn = document.getElementById('abortBtn');
+    const logOutput = document.getElementById('log-output');
+    const stageNames = [
+        'discovery', 'dependency_mapping', 'ai_planning', 'backup_vms',
+        'pre_migration_validation', 'evacuate_workloads', 'verify_evacuation',
+        'cluster_teardown', 'cluster_rebuild', 'day2_restore',
+        'move_back_workloads', 'post_move_validation', 'verify_backups', 'cleanup'
+    ];
+    let currentJobId = null;
+    let eventSource = null;
+    let stageIdx = 0;
+
+    confirmCb.addEventListener('change', () => { startBtn.disabled = !confirmCb.checked; });
+
+    startBtn.addEventListener('click', async () => {
+        document.getElementById('confirm-card').classList.add('d-none');
+        document.getElementById('progress-section').classList.remove('d-none');
+        updateBadge('Running', 'bg-info');
+
+        try {
+            const resp = await fetch('/api/v1/pipeline/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    skip_backup: {{ 'true' if data.get('backup_enabled', 'true') != 'true' else 'false' }},
+                    skip_move_back: {{ 'true' if data.get('skip_move_back') == 'true' else 'false' }},
+                    use_ai: {{ 'true' if data.get('use_ai', 'true') == 'true' else 'false' }},
+                }),
+            });
+            const result = await resp.json();
+            if (result.data && result.data.job_id) {
+                currentJobId = result.data.job_id;
+                connectSSE(currentJobId);
+            } else {
+                addLog('ERROR: ' + (result.message || 'Failed to start pipeline'), 'error');
+                updateBadge('Failed', 'bg-danger');
+            }
+        } catch (err) {
+            addLog('ERROR: ' + err.message, 'error');
+            updateBadge('Failed', 'bg-danger');
+        }
+    });
+
+    abortBtn.addEventListener('click', async () => {
+        if (!currentJobId) return;
+        await fetch(`/api/v1/pipeline/${currentJobId}/abort`, {method: 'POST'});
+        addLog('Abort requested...', 'error');
+    });
+
+    function connectSSE(jobId) {
+        eventSource = new EventSource(`/api/v1/pipeline/${jobId}/events`);
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.event === 'done') {
+                eventSource.close();
+                const state = data.state;
+                if (state === 'completed') {
+                    updateBadge('Completed', 'bg-success');
+                } else {
+                    updateBadge(state.charAt(0).toUpperCase() + state.slice(1), 'bg-danger');
+                }
+                document.getElementById('homeBtn').style.display = 'inline-block';
+                abortBtn.style.display = 'none';
+                fetchReport(jobId);
+                return;
+            }
+            if (data.message) {
+                addLog(data.message);
+                updateStageFromMessage(data.message);
+            }
+        };
+        eventSource.onerror = () => {
+            eventSource.close();
+        };
+    }
+
+    function addLog(msg, type) {
+        const cls = type === 'error' ? 'log-error' : (msg.includes('✔') || msg.includes('✅') ? 'log-success' : '');
+        const time = new Date().toISOString().substring(11, 19);
+        logOutput.innerHTML += `<div><span class="log-time">${time}</span><span class="${cls}">${msg}</span></div>`;
+        logOutput.scrollTop = logOutput.scrollHeight;
+    }
+
+    function updateStageFromMessage(msg) {
+        const lower = msg.toLowerCase();
+        for (let i = 0; i < stageNames.length; i++) {
+            const name = stageNames[i].replace(/_/g, ' ');
+            if (lower.includes('stage ' + (i+1)) || lower.includes(name)) {
+                // Mark previous as done
+                for (let j = 0; j < i; j++) {
+                    const el = document.getElementById('stage-' + j);
+                    el.classList.add('done');
+                    el.querySelector('.stage-status').textContent = '✔';
+                    el.querySelector('.stage-status').className = 'stage-status text-success';
+                }
+                // Mark current as running
+                const el = document.getElementById('stage-' + i);
+                el.classList.add('running');
+                el.querySelector('.stage-status').textContent = 'Running...';
+                el.querySelector('.stage-status').className = 'stage-status text-info';
+                // Update progress bar
+                const pct = Math.round(((i + 1) / stageNames.length) * 100);
+                const bar = document.getElementById('overall-progress');
+                bar.style.width = pct + '%';
+                bar.textContent = pct + '%';
+                break;
+            }
+        }
+    }
+
+    function updateBadge(text, cls) {
+        const badge = document.getElementById('status-badge');
+        badge.textContent = text;
+        badge.className = 'badge ' + cls;
+    }
+
+    async function fetchReport(jobId) {
+        try {
+            const resp = await fetch(`/api/v1/pipeline/${jobId}/report`);
+            const result = await resp.json();
+            if (result.data) {
+                document.getElementById('report-content').textContent = JSON.stringify(result.data, null, 2);
+                document.getElementById('report-section').classList.remove('d-none');
+                // Mark all stages done
+                const bar = document.getElementById('overall-progress');
+                bar.style.width = '100%';
+                bar.textContent = '100%';
+                bar.className = result.data.all_ok
+                    ? 'progress-bar bg-success' : 'progress-bar bg-danger';
+            }
+        } catch (err) { /* ignore */ }
+    }
+</script>
+{% endblock %}

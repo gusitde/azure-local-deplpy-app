@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Rebuild Cluster – Step 3: Migration Target{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-3 wizard-sidebar py-4">
+        <h6 class="text-uppercase text-secondary px-3 mb-3">Rebuild Wizard</h6>
+        <div class="step completed"><span class="step-num">1</span> AI Provider</div>
+        <div class="step completed"><span class="step-num">2</span> Source Cluster</div>
+        <div class="step active"><span class="step-num">3</span> Migration Target</div>
+        <div class="step"><span class="step-num">4</span> Backup Settings</div>
+        <div class="step"><span class="step-num">5</span> Discovery & Planning</div>
+        <div class="step"><span class="step-num">6</span> Options & Review</div>
+        <div class="step"><span class="step-num">7</span> Execute</div>
+    </div>
+    <div class="col-md-9 py-4">
+        <h3 class="mb-4"><i class="bi bi-box-arrow-right"></i> Step 3: Migration Target</h3>
+        <p class="text-secondary">The migration target is a temporary Hyper-V host or cluster where workloads will reside during the rebuild.</p>
+        <form method="post">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-hdd-rack-fill"></i> Target Host</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Target Type</label>
+                            <select name="target_type" class="form-select">
+                                <option value="hyperv_host" {% if data.get('target_type') == 'hyperv_host' %}selected{% endif %}>Standalone Hyper-V Host</option>
+                                <option value="hyperv_cluster" {% if data.get('target_type') == 'hyperv_cluster' %}selected{% endif %}>Hyper-V Cluster</option>
+                                <option value="azure_vm" {% if data.get('target_type') == 'azure_vm' %}selected{% endif %}>Azure VM (nested)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Storage Path</label>
+                            <input type="text" name="target_storage_path" class="form-control"
+                                   value="{{ data.get('target_storage_path', 'C:\\ClusterStorage\\Volume1') }}"
+                                   placeholder="C:\ClusterStorage\Volume1">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Host IP / Hostname</label>
+                            <input type="text" name="target_host" class="form-control" required
+                                   value="{{ data.get('target_host', '') }}"
+                                   placeholder="10.0.1.50">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">SSH Port</label>
+                            <input type="number" name="target_ssh_port" class="form-control"
+                                   value="{{ data.get('target_ssh_port', '22') }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="target_username" class="form-control"
+                                   value="{{ data.get('target_username', 'Administrator') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="target_password" class="form-control" required
+                                   value="{{ data.get('target_password', '') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shuffle"></i> Migration Method</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Default Migration Method</label>
+                        <select name="migration_method" class="form-select">
+                            <option value="live" {% if data.get('migration_method', 'live') == 'live' %}selected{% endif %}>Live Migration (minimal downtime)</option>
+                            <option value="quick" {% if data.get('migration_method') == 'quick' %}selected{% endif %}>Quick Migration (brief downtime)</option>
+                            <option value="export_import" {% if data.get('migration_method') == 'export_import' %}selected{% endif %}>Export / Import (longer downtime)</option>
+                        </select>
+                        <div class="form-text">Live migration is recommended for minimal downtime. Export/import works across domains.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/wizard/rebuild/step/2" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Backup Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

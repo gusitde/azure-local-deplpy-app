@@ -1,41 +1,44 @@
 {% extends "base.html" %}
-{% block title %}New Cluster – Step 2: Global Settings{% endblock %}
+{% block title %}New Cluster – Step 2: Azure Account{% endblock %}
 {% block content %}
-{% set steps = ["Azure Account", "Global Settings", "Server iDRAC", "Network Config", "Time & NTP", "Cluster Settings"] %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
 {% set current_step = 2 %}
 <div class="row g-0">
     <div class="col-md-3 col-lg-2">
         {% include "wizard_sidebar.html" with context %}
     </div>
     <div class="col-md-9 col-lg-10 p-4">
-        <h3 class="mb-1">Step 2: Global Settings</h3>
-        <p class="text-secondary mb-4">Defaults applied to all servers. Individual servers can override these later.</p>
+        <h3 class="mb-1">Step 2: Azure Account</h3>
+        <p class="text-secondary mb-4">Enter your Azure subscription details. These are required for Arc registration and cluster creation.</p>
         <form method="POST">
             <div class="row g-3">
-                <div class="col-md-8">
-                    <label class="form-label">Azure Local ISO URL <span class="text-danger">*</span></label>
-                    <input type="url" class="form-control" name="iso_url" value="{{ data.get('iso_url', '') }}" required
-                           placeholder="https://fileserver.corp.local/images/AzureLocal.iso">
-                    <div class="form-text">HTTP/HTTPS/NFS/CIFS path accessible from every iDRAC.</div>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Number of Servers <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" name="server_count" min="1" max="16"
-                           value="{{ data.get('server_count', '2') }}" required>
+                <div class="col-md-6">
+                    <label class="form-label">Azure Tenant ID <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="tenant_id" value="{{ data.get('tenant_id', '') }}" required
+                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">HTTPS Proxy URL</label>
-                    <input type="text" class="form-control" name="proxy_url" value="{{ data.get('proxy_url', '') }}"
-                           placeholder="https://proxy.corp.local:8080 (blank = direct)">
+                    <label class="form-label">Subscription ID <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="subscription_id" value="{{ data.get('subscription_id', '') }}" required
+                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Default Host Username</label>
-                    <input type="text" class="form-control" name="default_host_user" value="{{ data.get('default_host_user', 'Administrator') }}">
+                    <label class="form-label">Resource Group <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="resource_group" value="{{ data.get('resource_group', '') }}" required
+                           placeholder="rg-azurelocal-prod">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Azure Region <span class="text-danger">*</span></label>
+                    <select class="form-select" name="region">
+                        {% for r in ["eastus", "eastus2", "westus2", "westus3", "centralus", "northeurope", "westeurope", "uksouth", "southeastasia", "australiaeast"] %}
+                        <option value="{{ r }}" {% if data.get('region', 'eastus') == r %}selected{% endif %}>{{ r }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
-            <div class="mt-4 d-flex gap-2">
+            <div class="mt-4">
                 <a href="{{ url_for('wizard_step', step=1) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
-                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Server iDRAC</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Global Settings</button>
             </div>
         </form>
     </div>

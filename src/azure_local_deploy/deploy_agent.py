@@ -2,6 +2,14 @@
 
 The agent connects each server to Azure Arc, which is a prerequisite for
 creating the Azure Local cluster resource in Azure.
+
+For Azure Local (Azure Stack HCI), Microsoft recommends using the
+``Invoke-AzStackHciArcInitialization`` cmdlet which handles agent install,
+Arc registration, and required extension deployment in a single step.
+
+Reference:
+    https://learn.microsoft.com/en-us/azure/azure-local/deploy/deployment-without-azure-arc-gateway
+    https://learn.microsoft.com/en-us/azure/azure-local/manage/add-server
 """
 
 from __future__ import annotations
@@ -24,11 +32,18 @@ def deploy_agent(
     arc_gateway_id: str = "",
     proxy_url: str = "",
     ssh_port: int = 22,
+    use_hci_init: bool = True,
 ) -> None:
     """Download, install, and register the Azure Connected Machine agent.
 
-    This performs the equivalent of running the Azure Arc onboarding script
-    on each Azure Local node.
+    When *use_hci_init* is ``True`` (default), uses Microsoft's recommended
+    ``Invoke-AzStackHciArcInitialization`` cmdlet which installs the agent,
+    registers with Arc, **and** deploys required Arc extensions for Azure
+    Local.  This is the method documented at:
+    https://learn.microsoft.com/en-us/azure/azure-local/deploy/deployment-without-azure-arc-gateway
+
+    When *use_hci_init* is ``False``, falls back to direct ``azcmagent
+    connect`` registration (useful for non-Azure Local Arc scenarios).
 
     Parameters
     ----------
@@ -46,10 +61,108 @@ def deploy_agent(
         Optional Arc gateway resource id (for proxy/private-link scenarios).
     proxy_url:
         Optional HTTPS proxy URL.
+    use_hci_init:
+        When True, use Invoke-AzStackHciArcInitialization (recommended for
+        Azure Local).  When False, use raw azcmagent connect.
     """
     log.info("[bold]== Stage: Azure Local Agent Deployment ==[/] on %s", host)
 
-    # 1. Install prerequisites ---------------------------------------------
+    if use_hci_init:
+        _deploy_via_hci_init(
+            host, user, password,
+            tenant_id=tenant_id,
+            subscription_id=subscription_id,
+            resource_group=resource_group,
+            region=region,
+            proxy_url=proxy_url,
+            ssh_port=ssh_port,
+        )
+    else:
+        _deploy_via_azcmagent(
+            host, user, password,
+            tenant_id=tenant_id,
+            subscription_id=subscription_id,
+            resource_group=resource_group,
+            region=region,
+            arc_gateway_id=arc_gateway_id,
+            proxy_url=proxy_url,
+            ssh_port=ssh_port,
+        )
+
+    # Verify regardless of method
+    _verify_arc_status(host, user, password, ssh_port)
+    log.info("[bold green]Agent deployment complete[/] on %s", host)
+
+
+# ---------------------------------------------------------------------------
+# Registration methods
+# ---------------------------------------------------------------------------
+
+
+def _deploy_via_hci_init(
+    host: str,
+    user: str,
+    password: str,
+    *,
+    tenant_id: str,
+    subscription_id: str,
+    resource_group: str,
+    region: str,
+    proxy_url: str = "",
+    ssh_port: int = 22,
+) -> None:
+    """Use ``Invoke-AzStackHciArcInitialization`` for Azure Local registration.
+
+    This is the Microsoft-recommended method that:
+    1. Installs the Azure Connected Machine agent
+    2. Registers the machine with Azure Arc
+    3. Installs required Arc extensions for Azure Local
+
+    Reference:
+        https://learn.microsoft.com/en-us/azure/azure-local/deploy/deployment-without-azure-arc-gateway
+    """
+    # 1. Install prerequisites (Az.StackHCI module)
+    log.info("Installing Az.StackHCI module for Invoke-AzStackHciArcInitialization …")
+    prereq_cmds = [
+        "Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction SilentlyContinue",
+        "Set-PSRepository -Name PSGallery -InstallationPolicy Trusted",
+        "Install-Module -Name Az.StackHCI -Force -AllowClobber -ErrorAction Stop",
+    ]
+    run_powershell(host, user, password, "; ".join(prereq_cmds), port=ssh_port)
+
+    # 2. Run Invoke-AzStackHciArcInitialization
+    log.info("Running Invoke-AzStackHciArcInitialization on %s …", host)
+    proxy_part = f" -Proxy '{proxy_url}'" if proxy_url else ""
+
+    init_cmd = (
+        f"Invoke-AzStackHciArcInitialization "
+        f"-TenantId '{tenant_id}' "
+        f"-SubscriptionID '{subscription_id}' "
+        f"-ResourceGroup '{resource_group}' "
+        f"-Region '{region}' "
+        f"-Cloud 'AzureCloud'"
+        f"{proxy_part}"
+    )
+    run_powershell(host, user, password, init_cmd, port=ssh_port, timeout=600)
+
+    log.info("  ✔ Invoke-AzStackHciArcInitialization completed on %s", host)
+
+
+def _deploy_via_azcmagent(
+    host: str,
+    user: str,
+    password: str,
+    *,
+    tenant_id: str,
+    subscription_id: str,
+    resource_group: str,
+    region: str,
+    arc_gateway_id: str = "",
+    proxy_url: str = "",
+    ssh_port: int = 22,
+) -> None:
+    """Fallback: install agent manually and register via ``azcmagent connect``."""
+    # 1. Install prerequisites
     log.info("Installing NuGet provider & Az.StackHCI module …")
     prereq_cmds = [
         "Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -ErrorAction SilentlyContinue",
@@ -58,7 +171,7 @@ def deploy_agent(
     ]
     run_powershell(host, user, password, "; ".join(prereq_cmds), port=ssh_port)
 
-    # 2. Download & install the Azure Connected Machine agent ---------------
+    # 2. Download & install the Azure Connected Machine agent
     log.info("Downloading Azure Connected Machine agent …")
     install_cmds = [
         "$ProgressPreference = 'SilentlyContinue'",
@@ -67,8 +180,8 @@ def deploy_agent(
     ]
     run_powershell(host, user, password, "; ".join(install_cmds), port=ssh_port)
 
-    # 3. Register with Azure Arc -------------------------------------------
-    log.info("Registering node with Azure Arc …")
+    # 3. Register with Azure Arc
+    log.info("Registering node with Azure Arc via azcmagent connect …")
     proxy_part = f" --proxy-url '{proxy_url}'" if proxy_url else ""
     gw_part = f" --gateway-id '{arc_gateway_id}'" if arc_gateway_id else ""
 
@@ -82,11 +195,6 @@ def deploy_agent(
         f"{proxy_part}{gw_part}"
     )
     run_powershell(host, user, password, register_cmd, port=ssh_port)
-
-    # 4. Verify registration -----------------------------------------------
-    _verify_arc_status(host, user, password, ssh_port)
-
-    log.info("[bold green]Agent deployment complete[/] on %s", host)
 
 
 def _verify_arc_status(host: str, user: str, password: str, port: int) -> None:

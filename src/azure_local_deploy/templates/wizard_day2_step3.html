@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Day 2 – Step 3: Test VMs{% endblock %}
+{% block content %}
+{% set steps = ["Logical Networks", "VM Images", "Test VMs"] %}
+{% set current_step = 3 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-pc-display"></i> Step 3: Test Virtual Machines</h3>
+        <p class="text-secondary mb-4">
+            Create two test VMs to validate your cluster. Each VM is assigned a logical network,
+            a VM image, and admin credentials so you can log in immediately after creation. See
+            <a href="https://learn.microsoft.com/en-us/azure/azure-local/manage/create-arc-virtual-machines" target="_blank" class="text-info">Arc VM documentation</a>.
+        </p>
+        <form method="POST">
+            <!-- VM 1: Windows Server 2025 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary bg-opacity-25"><i class="bi bi-server"></i> Test VM 1 — Windows Server 2025</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">VM Name</label>
+                            <input type="text" class="form-control" name="vm1_name"
+                                   value="{{ data.get('vm1_name', 'test-vm-winserver2025') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Logical Network</label>
+                            <input type="text" class="form-control" name="vm1_network"
+                                   value="{{ data.get('vm1_network', data.get('dhcp_network_name', 'dhcp-logical-network')) }}">
+                            <div class="form-text">Network name from Step 1</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">VM Image</label>
+                            <input type="text" class="form-control" name="vm1_image"
+                                   value="{{ data.get('vm1_image', data.get('image1_name', 'windows-server-2025')) }}">
+                            <div class="form-text">Image name from Step 2</div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">vCPUs</label>
+                            <input type="number" class="form-control" name="vm1_cpu"
+                                   value="{{ data.get('vm1_cpu', '4') }}" min="1" max="64">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">RAM (GB)</label>
+                            <input type="number" class="form-control" name="vm1_memory"
+                                   value="{{ data.get('vm1_memory', '8') }}" min="1" max="512">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Disk (GB)</label>
+                            <input type="number" class="form-control" name="vm1_disk"
+                                   value="{{ data.get('vm1_disk', '128') }}" min="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Admin Username</label>
+                            <input type="text" class="form-control" name="vm1_admin_user"
+                                   value="{{ data.get('vm1_admin_user', 'azurelocaladmin') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Admin Password</label>
+                            <input type="password" class="form-control" name="vm1_admin_password"
+                                   value="{{ data.get('vm1_admin_password', '') }}" placeholder="Strong password required">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VM 2: Windows 11 -->
+            <div class="card mb-4">
+                <div class="card-header bg-info bg-opacity-25"><i class="bi bi-laptop"></i> Test VM 2 — Windows 11</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">VM Name</label>
+                            <input type="text" class="form-control" name="vm2_name"
+                                   value="{{ data.get('vm2_name', 'test-vm-win11') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Logical Network</label>
+                            <input type="text" class="form-control" name="vm2_network"
+                                   value="{{ data.get('vm2_network', data.get('static_network_name', 'static-logical-network')) }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">VM Image</label>
+                            <input type="text" class="form-control" name="vm2_image"
+                                   value="{{ data.get('vm2_image', data.get('image2_name', 'windows-11-enterprise')) }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">vCPUs</label>
+                            <input type="number" class="form-control" name="vm2_cpu"
+                                   value="{{ data.get('vm2_cpu', '4') }}" min="1" max="64">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">RAM (GB)</label>
+                            <input type="number" class="form-control" name="vm2_memory"
+                                   value="{{ data.get('vm2_memory', '8') }}" min="1" max="512">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Disk (GB)</label>
+                            <input type="number" class="form-control" name="vm2_disk"
+                                   value="{{ data.get('vm2_disk', '128') }}" min="10">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Admin Username</label>
+                            <input type="text" class="form-control" name="vm2_admin_user"
+                                   value="{{ data.get('vm2_admin_user', 'azurelocaladmin') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Admin Password</label>
+                            <input type="password" class="form-control" name="vm2_admin_password"
+                                   value="{{ data.get('vm2_admin_password', '') }}" placeholder="Strong password required">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="bi bi-key"></i> <strong>Login credentials:</strong> After VMs are created, use the admin username and password above to connect via RDP or the Azure portal VM console.
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_day2_step', step=2) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-success"><i class="bi bi-play-circle"></i> Run Day 2 Services</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

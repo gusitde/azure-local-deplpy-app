@@ -9,6 +9,27 @@
         </h3>
         <p class="text-secondary mb-4">Please review all settings before launching the deployment.</p>
 
+        <!-- Scope & Design -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-clipboard2-data"></i> Scope &amp; Design</div>
+            <div class="card-body">
+                <div class="row">
+                    {% if mode == 'new_cluster' %}
+                    <div class="col-md-4"><strong>Cluster Size:</strong> {{ data.get('scope_cluster_size', '—') }}</div>
+                    <div class="col-md-4"><strong>Nodes:</strong> {{ data.get('server_count', '—') }}</div>
+                    <div class="col-md-4"><strong>Storage Type:</strong> {{ data.get('scope_storage_type', '—') }}</div>
+                    <div class="col-md-4"><strong>Mgmt Subnet:</strong> {{ data.get('scope_mgmt_cidr', '—') }}</div>
+                    <div class="col-md-4"><strong>DNS:</strong> {{ data.get('scope_dns_servers', '—') }}</div>
+                    <div class="col-md-4"><strong>AD Mode:</strong> {{ data.get('scope_ad_mode', '—') }}</div>
+                    {% else %}
+                    <div class="col-md-4"><strong>Expansion Type:</strong> {{ data.get('scope_expansion_type', '—') }}</div>
+                    <div class="col-md-4"><strong>New Nodes:</strong> {{ data.get('server_count', '—') }}</div>
+                    <div class="col-md-4"><strong>Target Cluster:</strong> {{ data.get('scope_target_cluster', '—') }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
         <!-- Azure -->
         <div class="card mb-3">
             <div class="card-header"><i class="bi bi-cloud"></i> Azure Account</div>
@@ -111,7 +132,7 @@
 
         <!-- Actions -->
         <div class="d-flex gap-2 mt-4 mb-5">
-            <a href="{{ url_for('wizard_step', step=(5 if mode == 'add_node' else 6)) }}" class="btn btn-outline-secondary">
+            <a href="{{ url_for('wizard_step', step=(6 if mode == 'add_node' else 7)) }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Back
             </a>
             <form method="POST" action="{{ url_for('wizard_deploy') }}">

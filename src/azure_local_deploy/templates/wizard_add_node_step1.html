@@ -1,43 +1,267 @@
 {% extends "base.html" %}
-{% block title %}Add Node – Step 1: Azure Account{% endblock %}
+{% block title %}Add Node – Step 1: Scope &amp; Design{% endblock %}
 {% block content %}
-{% set steps = ["Azure Account", "Existing Cluster", "New Server iDRAC", "Network Config", "Time & NTP"] %}
+{% set steps = ["Scope & Design", "Azure Account", "Existing Cluster", "Firmware & BIOS", "New Server iDRAC", "Network Config", "Time & NTP", "Security & Checks", "Post-Add Options"] %}
 {% set current_step = 1 %}
 <div class="row g-0">
     <div class="col-md-3 col-lg-2">
         {% include "wizard_sidebar.html" with context %}
     </div>
     <div class="col-md-9 col-lg-10 p-4">
-        <h3 class="mb-1">Step 1: Azure Account</h3>
-        <p class="text-secondary mb-4">Enter Azure subscription details for the existing cluster.</p>
+        <h3 class="mb-1"><i class="bi bi-clipboard2-data"></i> Step 1: Scope &amp; Design</h3>
+        <p class="text-secondary mb-4">
+            Plan your node expansion. This checklist ensures the new node(s) meet
+            <a href="https://learn.microsoft.com/en-us/azure/azure-local/manage/add-node?view=azloc-2601" target="_blank" class="text-info">
+                Microsoft's add-node requirements</a>
+            and are compatible with the existing cluster.
+        </p>
         <form method="POST">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Azure Tenant ID <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="tenant_id" value="{{ data.get('tenant_id', '') }}" required
-                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Subscription ID <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="subscription_id" value="{{ data.get('subscription_id', '') }}" required
-                           placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Resource Group <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="resource_group" value="{{ data.get('resource_group', '') }}" required
-                           placeholder="rg-azurelocal-prod">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Azure Region <span class="text-danger">*</span></label>
-                    <select class="form-select" name="region">
-                        {% for r in ["eastus", "eastus2", "westus2", "westus3", "centralus", "northeurope", "westeurope", "uksouth", "southeastasia", "australiaeast"] %}
-                        <option value="{{ r }}" {% if data.get('region', 'eastus') == r %}selected{% endif %}>{{ r }}</option>
-                        {% endfor %}
-                    </select>
+
+            {# ── Deployment Type ──────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-signpost-split"></i> Deployment Type</div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        You are <strong>adding node(s) to an existing cluster</strong>.
+                        Need to create a new cluster instead?
+                        <a href="/wizard/new-cluster" class="text-info">Switch to New Cluster wizard</a>.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Expansion Type</label>
+                            <select class="form-select" name="scope_expansion_type">
+                                <option value="scale_out" {% if data.get('scope_expansion_type', 'scale_out') == 'scale_out' %}selected{% endif %}>Scale-out (add to multi-node cluster)</option>
+                                <option value="single_to_multi" {% if data.get('scope_expansion_type') == 'single_to_multi' %}selected{% endif %}>Single-node → Multi-node conversion</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Number of New Nodes <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="server_count" min="1" max="15"
+                                   value="{{ data.get('server_count', '1') }}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Target Cluster Name</label>
+                            <input type="text" class="form-control" name="scope_target_cluster"
+                                   value="{{ data.get('scope_target_cluster', '') }}" placeholder="azlocal-cluster-01">
+                            <div class="form-text">The Azure resource name of the existing cluster.</div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {# ── Hardware Compatibility ──────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-pc-display-horizontal"></i> Hardware Compatibility Checklist</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        New nodes must be compatible with the existing cluster configuration.
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/concepts/system-requirements?view=azloc-2601" target="_blank" class="text-info">System requirements →</a>
+                    </p>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_same_model" value="true"
+                                       id="hwModel" {% if data.get('scope_hw_same_model') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwModel">
+                                    <strong>Same hardware model:</strong> New node is same Dell PowerEdge generation as existing nodes
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_same_firmware" value="true"
+                                       id="hwFw" {% if data.get('scope_hw_same_firmware') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwFw">
+                                    <strong>Firmware match:</strong> BIOS, iDRAC, NIC firmware versions will match existing nodes
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_same_nics" value="true"
+                                       id="hwNics" {% if data.get('scope_hw_same_nics') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwNics">
+                                    <strong>NIC layout matches:</strong> Same number, type, and speed of network adapters
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_same_drives" value="true"
+                                       id="hwDrives" {% if data.get('scope_hw_same_drives') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwDrives">
+                                    <strong>Storage matches:</strong> Same number and type of data drives (no RAID)
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_tpm" value="true"
+                                       id="hwTpm" {% if data.get('scope_hw_tpm') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwTpm">
+                                    <strong>TPM 2.0:</strong> Present and enabled on new node
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_hw_idrac" value="true"
+                                       id="hwIdrac" {% if data.get('scope_hw_idrac') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="hwIdrac">
+                                    <strong>iDRAC 9+:</strong> Accessible with Redfish API and Virtual Media license
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── New Node IP Planning ────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-123"></i> New Node IP Address Planning</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Plan IP addresses for the new node(s). These must be on the same subnets and VLANs as the existing cluster.
+                        <a href="https://learn.microsoft.com/en-us/azure/azure-local/plan/cloud-deployment-network-considerations?view=azloc-2601" target="_blank" class="text-info">Network requirements →</a>
+                    </p>
+                    {% set node_count = (data.get('server_count', '1') | int) %}
+                    {% for i in range(1, node_count + 1) %}
+                    <h6 class="text-info mt-3"><i class="bi bi-hdd-rack"></i> New Node {{ i }}</h6>
+                    <div class="row g-2 mb-2">
+                        <div class="col-md-3">
+                            <label class="form-label small">iDRAC IP</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_new_{{ i }}_idrac_ip"
+                                   value="{{ data.get('scope_new_' ~ i ~ '_idrac_ip', '') }}" placeholder="10.0.0.2{{ i }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Management IP</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_new_{{ i }}_mgmt_ip"
+                                   value="{{ data.get('scope_new_' ~ i ~ '_mgmt_ip', '') }}" placeholder="10.0.1.2{{ i }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Storage 1 IP</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_new_{{ i }}_storage1_ip"
+                                   value="{{ data.get('scope_new_' ~ i ~ '_storage1_ip', '') }}" placeholder="10.0.11.2{{ i }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Storage 2 IP</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_new_{{ i }}_storage2_ip"
+                                   value="{{ data.get('scope_new_' ~ i ~ '_storage2_ip', '') }}" placeholder="10.0.12.2{{ i }}">
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# ── Existing Cluster Network Info ───────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-diagram-3"></i> Existing Cluster Network Reference</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        Record the existing cluster's network settings so the new node can be configured to match.
+                    </p>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label small">Management Subnet</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_existing_mgmt_cidr"
+                                   value="{{ data.get('scope_existing_mgmt_cidr', '') }}" placeholder="10.0.1.0/24">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Mgmt VLAN</label>
+                            <input type="number" class="form-control form-control-sm" name="scope_existing_mgmt_vlan"
+                                   value="{{ data.get('scope_existing_mgmt_vlan', '') }}" placeholder="native">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Default Gateway</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_existing_gateway"
+                                   value="{{ data.get('scope_existing_gateway', '') }}" placeholder="10.0.1.1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small">DNS Servers</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_existing_dns"
+                                   value="{{ data.get('scope_existing_dns', '') }}" placeholder="10.0.0.5, 10.0.0.6">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3">
+                            <label class="form-label small">Storage 1 Subnet</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_existing_stor1_cidr"
+                                   value="{{ data.get('scope_existing_stor1_cidr', '') }}" placeholder="10.0.11.0/24">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Storage 1 VLAN</label>
+                            <input type="number" class="form-control form-control-sm" name="scope_existing_stor1_vlan"
+                                   value="{{ data.get('scope_existing_stor1_vlan', '') }}" placeholder="711">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small">Storage 2 Subnet</label>
+                            <input type="text" class="form-control form-control-sm" name="scope_existing_stor2_cidr"
+                                   value="{{ data.get('scope_existing_stor2_cidr', '') }}" placeholder="10.0.12.0/24">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Storage 2 VLAN</label>
+                            <input type="number" class="form-control form-control-sm" name="scope_existing_stor2_vlan"
+                                   value="{{ data.get('scope_existing_stor2_vlan', '') }}" placeholder="712">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Pre-expansion Checklist ─────────────────── #}
+            <div class="card mb-4 border-info">
+                <div class="card-header bg-transparent text-info"><i class="bi bi-list-check"></i> Pre-Expansion Checklist</div>
+                <div class="card-body">
+                    <p class="small text-secondary mb-2">Confirm the following before proceeding:</p>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_cluster_healthy" value="true"
+                                       id="chkHealth" {% if data.get('scope_check_cluster_healthy') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkHealth">Existing cluster is healthy (no faults, all nodes online)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_capacity" value="true"
+                                       id="chkCap" {% if data.get('scope_check_capacity') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkCap">Storage pool has space for rebalance after add</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_switch_ports" value="true"
+                                       id="chkPorts" {% if data.get('scope_check_switch_ports') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkPorts">Network switch ports configured for new node (VLANs, MTU)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_dns_new" value="true"
+                                       id="chkDnsNew" {% if data.get('scope_check_dns_new') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkDnsNew">DNS A + PTR records created for new node(s)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_iso_available" value="true"
+                                       id="chkIso" {% if data.get('scope_check_iso_available') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkIso">Azure Local ISO accessible from iDRAC management network</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="scope_check_azure_rbac" value="true"
+                                       id="chkRbac" {% if data.get('scope_check_azure_rbac') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label small" for="chkRbac">Azure subscription has required RBAC roles</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="mt-4">
-                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Existing Cluster</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Azure Account</button>
             </div>
         </form>
     </div>

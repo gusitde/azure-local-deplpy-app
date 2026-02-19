@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}New Cluster – Step 12: Post-Deploy Options{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
+{% set current_step = 12 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-check2-all"></i> Step 12: Post-Deploy Options</h3>
+        <p class="text-secondary mb-4">
+            Configure tasks that run after the cluster is deployed. See
+            <a href="https://learn.microsoft.com/en-us/azure/azure-local/deploy/deploy-via-portal#post-deployment-tasks" target="_blank" class="text-info">post-deployment tasks</a>.
+        </p>
+        <form method="POST">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-activity"></i> Health Monitoring</div>
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="pd_health_monitoring" value="true"
+                               id="pdHealth" {% if data.get('pd_health_monitoring', 'true') == 'true' %}checked{% endif %}>
+                        <label class="form-check-label" for="pdHealth">
+                            <strong>Enable Health Monitoring</strong> – Verify Azure Monitor Agent and set up storage alerts at 70% capacity.
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-hdd-stack"></i> Workload Volumes</div>
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="pd_create_volumes" value="true"
+                               id="pdVolumes" {% if data.get('pd_create_volumes', 'true') == 'true' %}checked{% endif %}>
+                        <label class="form-check-label" for="pdVolumes">
+                            <strong>Create Workload Volumes</strong> – Create a thin-provisioned 100 GB CSV volume with appropriate resiliency.
+                        </label>
+                    </div>
+                    <div class="form-text mt-1">
+                        Resiliency is selected automatically: Simple (1-node), Two-way mirror (2-node), Three-way mirror (3+ nodes).
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-display"></i> Remote Desktop</div>
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="pd_enable_rdp" value="true"
+                               id="pdRdp" {% if data.get('pd_enable_rdp') == 'true' %}checked{% endif %}>
+                        <label class="form-check-label" for="pdRdp">
+                            <strong>Enable RDP</strong> – Run <code>Enable-ASRemoteDesktop</code> on all cluster nodes.
+                        </label>
+                    </div>
+                    <div class="form-text mt-1 text-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        RDP is disabled by default for security. Only enable if you need interactive access.
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=11) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Review Configuration</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,75 +1,41 @@
 {% extends "base.html" %}
-{% block title %}New Cluster – Step 3: Server iDRAC{% endblock %}
+{% block title %}New Cluster – Step 3: Global Settings{% endblock %}
 {% block content %}
-{% set steps = ["Azure Account", "Global Settings", "Server iDRAC", "Network Config", "Time & NTP", "Cluster Settings"] %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
 {% set current_step = 3 %}
-{% set server_count = (data.get('server_count', '2') | int) %}
 <div class="row g-0">
     <div class="col-md-3 col-lg-2">
         {% include "wizard_sidebar.html" with context %}
     </div>
     <div class="col-md-9 col-lg-10 p-4">
-        <h3 class="mb-1">Step 3: Server iDRAC Credentials</h3>
-        <p class="text-secondary mb-4">Enter the iDRAC (BMC) IP, credentials, and target host IP for each Dell server.</p>
+        <h3 class="mb-1">Step 3: Global Settings</h3>
+        <p class="text-secondary mb-4">Defaults applied to all servers. Individual servers can override these later.</p>
         <form method="POST">
-            {% for i in range(1, server_count + 1) %}
-            {% set p = 'server_' ~ i ~ '_' %}
-            <div class="card mb-3">
-                <div class="card-header"><i class="bi bi-hdd-rack"></i> Server {{ i }}</div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">iDRAC IP / Hostname <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="{{ p }}idrac_host"
-                                   value="{{ data.get(p ~ 'idrac_host', '') }}" required placeholder="10.0.0.{{ 10 + i }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">iDRAC Username</label>
-                            <input type="text" class="form-control" name="{{ p }}idrac_user"
-                                   value="{{ data.get(p ~ 'idrac_user', 'root') }}" placeholder="root">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">iDRAC Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="{{ p }}idrac_password"
-                                   value="{{ data.get(p ~ 'idrac_password', '') }}" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Host Management IP <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" name="{{ p }}host_ip"
-                                   value="{{ data.get(p ~ 'host_ip', '') }}" required placeholder="10.0.1.{{ 10 + i }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Host Username</label>
-                            <input type="text" class="form-control" name="{{ p }}host_user"
-                                   value="{{ data.get(p ~ 'host_user', data.get('default_host_user', 'Administrator')) }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Host Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="{{ p }}host_password"
-                                   value="{{ data.get(p ~ 'host_password', '') }}" required>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">SSH Port</label>
-                            <input type="number" class="form-control" name="{{ p }}ssh_port"
-                                   value="{{ data.get(p ~ 'ssh_port', '22') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">NIC Count</label>
-                            <input type="number" class="form-control" name="{{ p }}nic_count" min="1" max="8"
-                                   value="{{ data.get(p ~ 'nic_count', '3') }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Arc Resource ID <small class="text-secondary">(auto-populated after agent deploy)</small></label>
-                            <input type="text" class="form-control" name="{{ p }}arc_resource_id"
-                                   value="{{ data.get(p ~ 'arc_resource_id', '') }}" placeholder="(leave blank – filled automatically)">
-                        </div>
-                    </div>
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Azure Local ISO URL <span class="text-danger">*</span></label>
+                    <input type="url" class="form-control" name="iso_url" value="{{ data.get('iso_url', '') }}" required
+                           placeholder="https://fileserver.corp.local/images/AzureLocal.iso">
+                    <div class="form-text">HTTP/HTTPS/NFS/CIFS path accessible from every iDRAC.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Number of Servers <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" name="server_count" min="1" max="16"
+                           value="{{ data.get('server_count', '2') }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">HTTPS Proxy URL</label>
+                    <input type="text" class="form-control" name="proxy_url" value="{{ data.get('proxy_url', '') }}"
+                           placeholder="https://proxy.corp.local:8080 (blank = direct)">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Default Host Username</label>
+                    <input type="text" class="form-control" name="default_host_user" value="{{ data.get('default_host_user', 'Administrator') }}">
                 </div>
             </div>
-            {% endfor %}
             <div class="mt-4 d-flex gap-2">
                 <a href="{{ url_for('wizard_step', step=2) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
-                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Network Config</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Firmware & BIOS</button>
             </div>
         </form>
     </div>

@@ -1,72 +1,95 @@
 {% extends "base.html" %}
-{% block title %}Add Node – Step 4: Network Config{% endblock %}
+{% block title %}Add Node – Step 4: Firmware & BIOS{% endblock %}
 {% block content %}
-{% set steps = ["Azure Account", "Existing Cluster", "New Server iDRAC", "Network Config", "Time & NTP"] %}
+{% set steps = ["Scope & Design", "Azure Account", "Existing Cluster", "Firmware & BIOS", "New Server iDRAC", "Network Config", "Time & NTP", "Security & Checks", "Post-Add Options"] %}
 {% set current_step = 4 %}
-{% set server_count = (data.get('server_count', '1') | int) %}
 <div class="row g-0">
     <div class="col-md-3 col-lg-2">
         {% include "wizard_sidebar.html" with context %}
     </div>
     <div class="col-md-9 col-lg-10 p-4">
-        <h3 class="mb-1">Step 4: Network Configuration</h3>
-        <p class="text-secondary mb-4">Configure the NICs on the new node(s) to match the existing cluster network layout.</p>
+        <h3 class="mb-1">Step 4: Firmware & BIOS Configuration</h3>
+        <p class="text-secondary mb-4">
+            Configure firmware and BIOS settings for the new node(s).
+            Firmware and BIOS should match the existing cluster nodes.
+        </p>
         <form method="POST">
-            {% for i in range(1, server_count + 1) %}
-            {% set sp = 'server_' ~ i ~ '_' %}
-            {% set nic_count = (data.get(sp ~ 'nic_count', '3') | int) %}
-            <h5 class="mt-4 mb-3"><i class="bi bi-hdd-rack"></i> New Node {{ i }}
-                <small class="text-secondary">({{ data.get(sp ~ 'idrac_host', '?') }})</small>
-            </h5>
-            {% for n in range(1, nic_count + 1) %}
-            {% set np = sp ~ 'nic_' ~ n ~ '_' %}
-            <div class="card mb-3">
-                <div class="card-header py-2"><i class="bi bi-ethernet"></i> NIC {{ n }}</div>
+            {# ── Firmware Update ─────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-arrow-repeat"></i> Firmware Update</div>
                 <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-2">
-                            <label class="form-label small">Adapter Name</label>
-                            <input type="text" class="form-control form-control-sm" name="{{ np }}name"
-                                   value="{{ data.get(np ~ 'name', ['Mgmt','Storage1','Storage2'][n-1] if n <= 3 else 'NIC' ~ n) }}">
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label">Dell Firmware Catalog URL</label>
+                            <input type="url" class="form-control" name="firmware_catalog_url"
+                                   value="{{ data.get('firmware_catalog_url', '') }}"
+                                   placeholder="https://downloads.dell.com/catalog/Catalog.xml">
+                            <div class="form-text">Leave blank to skip firmware updates.</div>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label small">MAC Address <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" name="{{ np }}mac"
-                                   value="{{ data.get(np ~ 'mac', '') }}" required placeholder="AA:BB:CC:DD:EE:FF">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small">IP Address <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" name="{{ np }}ip"
-                                   value="{{ data.get(np ~ 'ip', '') }}" required>
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label small">Prefix</label>
-                            <input type="number" class="form-control form-control-sm" name="{{ np }}prefix"
-                                   value="{{ data.get(np ~ 'prefix', '24') }}" min="8" max="30">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small">Gateway</label>
-                            <input type="text" class="form-control form-control-sm" name="{{ np }}gateway"
-                                   value="{{ data.get(np ~ 'gateway', '') }}">
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small">DNS Servers</label>
-                            <input type="text" class="form-control form-control-sm" name="{{ np }}dns"
-                                   value="{{ data.get(np ~ 'dns', '') }}" placeholder="10.0.0.5, 10.0.0.6">
-                        </div>
-                        <div class="col-md-1">
-                            <label class="form-label small">VLAN</label>
-                            <input type="number" class="form-control form-control-sm" name="{{ np }}vlan"
-                                   value="{{ data.get(np ~ 'vlan', '') }}">
+                        <div class="col-md-4">
+                            <label class="form-label">Firmware Timeout (s)</label>
+                            <input type="number" class="form-control" name="firmware_task_timeout"
+                                   value="{{ data.get('firmware_task_timeout', '3600') }}" min="600" max="14400">
                         </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
-            {% endfor %}
+            {# ── BIOS Configuration ─────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-cpu"></i> BIOS Configuration</div>
+                <div class="card-body">
+                    <p class="text-secondary small mb-3">
+                        The Azure Local BIOS profile sets: VT-x/AMD-V, VT-d, SR-IOV, Secure Boot,
+                        UEFI, TPM 2.0, Hyper-Threading, and optimised power settings.
+                    </p>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">BIOS Profile</label>
+                            <select class="form-select" name="bios_profile">
+                                <option value="AzureLocal" {% if data.get('bios_profile', 'AzureLocal') == 'AzureLocal' %}selected{% endif %}>Azure Local (recommended)</option>
+                                <option value="Custom" {% if data.get('bios_profile') == 'Custom' %}selected{% endif %}>Custom</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Reboot After BIOS Change</label>
+                            <select class="form-select" name="bios_apply_reboot">
+                                <option value="true" {% if data.get('bios_apply_reboot', 'true') == 'true' %}selected{% endif %}>Yes</option>
+                                <option value="false" {% if data.get('bios_apply_reboot') == 'false' %}selected{% endif %}>No</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">BIOS Timeout (s)</label>
+                            <input type="number" class="form-control" name="bios_task_timeout"
+                                   value="{{ data.get('bios_task_timeout', '1200') }}" min="300" max="7200">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {# ── Pre-flight Validation ──────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-shield-check"></i> Pre-flight Validation</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="run_validation" value="true"
+                                       id="runValidation" {% if data.get('run_validation', 'true') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="runValidation">Run pre-flight node validation</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="abort_on_validation_failure" value="true"
+                                       id="abortOnFail" {% if data.get('abort_on_validation_failure', 'true') == 'true' %}checked{% endif %}>
+                                <label class="form-check-label" for="abortOnFail">Abort if validation fails</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="mt-4 d-flex gap-2">
                 <a href="{{ url_for('wizard_step', step=3) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
-                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Time & NTP</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: New Server iDRAC</button>
             </div>
         </form>
     </div>

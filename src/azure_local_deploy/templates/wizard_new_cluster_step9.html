@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}New Cluster – Step 9: Key Vault &amp; Cloud Witness{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
+{% set current_step = 9 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-key"></i> Step 9: Key Vault &amp; Cloud Witness</h3>
+        <p class="text-secondary mb-4">
+            Azure Local requires a Key Vault for cluster secrets and a cloud witness for quorum.
+        </p>
+        <form method="POST">
+
+            {# ── Key Vault ──────────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-safe2"></i> Azure Key Vault</div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        A <a href="https://learn.microsoft.com/en-us/azure/azure-local/deploy/deployment-prep-key-vault" target="_blank" class="text-info">Key Vault</a>
+                        stores the deployment credential, BitLocker keys, and other secrets.
+                        The pipeline will create one if it doesn't exist.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Key Vault Name</label>
+                            <input type="text" class="form-control" name="keyvault_name"
+                                   value="{{ data.get('keyvault_name', '') }}"
+                                   placeholder="azlocal-kv-001">
+                            <div class="form-text">3-24 characters, alphanumeric and hyphens. Globally unique.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ── Cloud Witness ──────────────────────── #}
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-cloud-check"></i> Cloud Witness (Quorum)</div>
+                <div class="card-body">
+                    <div class="alert alert-info py-2 small mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        A <a href="https://learn.microsoft.com/en-us/azure/azure-local/manage/witness" target="_blank" class="text-info">cloud witness</a>
+                        uses an Azure Storage account as a quorum witness. Recommended for clusters with 2+ nodes.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Storage Account Name</label>
+                            <input type="text" class="form-control" name="cloud_witness_storage_account"
+                                   value="{{ data.get('cloud_witness_storage_account', '') }}"
+                                   placeholder="azlocalwitness001">
+                            <div class="form-text">3-24 chars, lowercase alphanumeric only. Globally unique.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=8) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Proxy Config</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

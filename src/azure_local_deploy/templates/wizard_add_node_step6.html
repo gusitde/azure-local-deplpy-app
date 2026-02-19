@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Add Node – Step 6: Network Config{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Existing Cluster", "Firmware & BIOS", "New Server iDRAC", "Network Config", "Time & NTP", "Security & Checks", "Post-Add Options"] %}
+{% set current_step = 6 %}
+{% set server_count = (data.get('server_count', '1') | int) %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1">Step 6: Network Configuration</h3>
+        <p class="text-secondary mb-4">Configure the NICs on the new node(s) to match the existing cluster network layout.</p>
+        <form method="POST">
+            {% for i in range(1, server_count + 1) %}
+            {% set sp = 'server_' ~ i ~ '_' %}
+            {% set nic_count = (data.get(sp ~ 'nic_count', '3') | int) %}
+            <h5 class="mt-4 mb-3"><i class="bi bi-hdd-rack"></i> New Node {{ i }}
+                <small class="text-secondary">({{ data.get(sp ~ 'idrac_host', '?') }})</small>
+            </h5>
+            {% for n in range(1, nic_count + 1) %}
+            {% set np = sp ~ 'nic_' ~ n ~ '_' %}
+            <div class="card mb-3">
+                <div class="card-header py-2"><i class="bi bi-ethernet"></i> NIC {{ n }}</div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-2">
+                            <label class="form-label small">Adapter Name</label>
+                            <input type="text" class="form-control form-control-sm" name="{{ np }}name"
+                                   value="{{ data.get(np ~ 'name', ['Mgmt','Storage1','Storage2'][n-1] if n <= 3 else 'NIC' ~ n) }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">MAC Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="{{ np }}mac"
+                                   value="{{ data.get(np ~ 'mac', '') }}" required placeholder="AA:BB:CC:DD:EE:FF">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">IP Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" name="{{ np }}ip"
+                                   value="{{ data.get(np ~ 'ip', '') }}" required>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">Prefix</label>
+                            <input type="number" class="form-control form-control-sm" name="{{ np }}prefix"
+                                   value="{{ data.get(np ~ 'prefix', '24') }}" min="8" max="30">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Gateway</label>
+                            <input type="text" class="form-control form-control-sm" name="{{ np }}gateway"
+                                   value="{{ data.get(np ~ 'gateway', '') }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">DNS Servers</label>
+                            <input type="text" class="form-control form-control-sm" name="{{ np }}dns"
+                                   value="{{ data.get(np ~ 'dns', '') }}" placeholder="10.0.0.5, 10.0.0.6">
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">VLAN</label>
+                            <input type="number" class="form-control form-control-sm" name="{{ np }}vlan"
+                                   value="{{ data.get(np ~ 'vlan', '') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% endfor %}
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=5) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Time & NTP</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

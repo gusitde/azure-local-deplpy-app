@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Rebuild Cluster – Step 2: Source Cluster{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-3 wizard-sidebar py-4">
+        <h6 class="text-uppercase text-secondary px-3 mb-3">Rebuild Wizard</h6>
+        <div class="step completed"><span class="step-num">1</span> AI Provider</div>
+        <div class="step active"><span class="step-num">2</span> Source Cluster</div>
+        <div class="step"><span class="step-num">3</span> Migration Target</div>
+        <div class="step"><span class="step-num">4</span> Backup Settings</div>
+        <div class="step"><span class="step-num">5</span> Discovery & Planning</div>
+        <div class="step"><span class="step-num">6</span> Options & Review</div>
+        <div class="step"><span class="step-num">7</span> Execute</div>
+    </div>
+    <div class="col-md-9 py-4">
+        <h3 class="mb-4"><i class="bi bi-hdd-network"></i> Step 2: Source Cluster</h3>
+        <p class="text-secondary">Provide SSH credentials for the existing cluster that will be rebuilt.</p>
+        <form method="post">
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-server"></i> Cluster Connection</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Cluster Node IP / Hostname</label>
+                            <input type="text" name="source_host" class="form-control" required
+                                   value="{{ data.get('source_host', '') }}"
+                                   placeholder="10.0.1.11">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">SSH Port</label>
+                            <input type="number" name="source_ssh_port" class="form-control"
+                                   value="{{ data.get('source_ssh_port', '22') }}">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Username</label>
+                            <input type="text" name="source_username" class="form-control"
+                                   value="{{ data.get('source_username', 'Administrator') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Password</label>
+                            <input type="password" name="source_password" class="form-control" required
+                                   value="{{ data.get('source_password', '') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-cloud"></i> Azure Registration</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cluster Name</label>
+                            <input type="text" name="cluster_name" class="form-control"
+                                   value="{{ data.get('cluster_name', '') }}"
+                                   placeholder="azlocal-cluster-01">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Domain FQDN</label>
+                            <input type="text" name="domain_fqdn" class="form-control"
+                                   value="{{ data.get('domain_fqdn', '') }}"
+                                   placeholder="corp.local">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Subscription ID</label>
+                            <input type="text" name="subscription_id" class="form-control"
+                                   value="{{ data.get('subscription_id', '') }}"
+                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Resource Group</label>
+                            <input type="text" name="resource_group" class="form-control"
+                                   value="{{ data.get('resource_group', '') }}"
+                                   placeholder="rg-azurelocal-prod">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tenant ID</label>
+                            <input type="text" name="tenant_id" class="form-control"
+                                   value="{{ data.get('tenant_id', '') }}"
+                                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Region</label>
+                            <input type="text" name="region" class="form-control"
+                                   value="{{ data.get('region', 'eastus') }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="/wizard/rebuild/step/1" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Migration Target</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

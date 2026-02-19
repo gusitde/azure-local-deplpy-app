@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}New Cluster – Step 11: Cluster Settings{% endblock %}
+{% block content %}
+{% set steps = ["Scope & Design", "Azure Account", "Global Settings", "Firmware & BIOS", "Server iDRAC", "Network Config", "Time & NTP", "Security & AD", "Key Vault & Witness", "Proxy Config", "Cluster Settings", "Post-Deploy"] %}
+{% set current_step = 11 %}
+<div class="row g-0">
+    <div class="col-md-3 col-lg-2">
+        {% include "wizard_sidebar.html" with context %}
+    </div>
+    <div class="col-md-9 col-lg-10 p-4">
+        <h3 class="mb-1"><i class="bi bi-server"></i> Step 11: Cluster Settings</h3>
+        <p class="text-secondary mb-4">Configure the Azure Local cluster name, IP, and Active Directory settings.</p>
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Cluster Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="cluster_name"
+                           value="{{ data.get('cluster_name', '') }}" required placeholder="azlocal-cluster-01">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Cluster IP (Failover Cluster) <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" name="cluster_ip"
+                           value="{{ data.get('cluster_ip', '') }}" required placeholder="10.0.1.100">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Domain FQDN <small class="text-secondary">(blank for AD-less)</small></label>
+                    <input type="text" class="form-control" name="domain_fqdn"
+                           value="{{ data.get('domain_fqdn', '') }}" placeholder="corp.local">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">AD OU Path</label>
+                    <input type="text" class="form-control" name="ou_path"
+                           value="{{ data.get('ou_path', '') }}" placeholder="OU=AzureLocal,DC=corp,DC=local">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Deployment Timeout (seconds)</label>
+                    <input type="number" class="form-control" name="deployment_timeout"
+                           value="{{ data.get('deployment_timeout', '7200') }}" min="600" max="21600">
+                </div>
+            </div>
+            <div class="mt-4 d-flex gap-2">
+                <a href="{{ url_for('wizard_step', step=10) }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Back</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-arrow-right"></i> Next: Post-Deploy Options</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -783,12 +783,23 @@ azure-local-deplpy-app/
 │   ├── azure_auth.py                # Azure credential factory
 │   ├── utils.py                     # Logger, retry, validation
 │   └── templates/                   # 36 Jinja2 HTML templates
+├── scripts/                         # Standalone utility scripts
+│   ├── bios/                        # BIOS inspection & configuration (13)
+│   ├── firmware/                    # Firmware catalog, DUP push, updates (23)
+│   ├── network/                     # NIC config, Broadcom, NicMode, SCP (25)
+│   ├── os_deploy/                   # ISO boot, virtual media, OS install (13)
+│   ├── discovery/                   # Server discovery & hardware queries (6)
+│   ├── monitoring/                  # Job polling & status monitoring (5)
+│   └── idrac/                       # iDRAC SSH, WinRM, racadm, power (11)
+├── config/                          # Sample & test configuration files
+│   ├── deploy-config.sample.yaml    # Sample deployment config
+│   ├── add-node-test-config.yaml    # Add-node test config
+│   └── adv01_network_config.txt     # Network reference
 ├── tests/                           # 11 test modules
 ├── designs/                         # Architecture documents
 ├── dups/                            # Dell firmware DUPs (git-ignored)
 ├── pyproject.toml                   # Project metadata & deps
 ├── requirements.txt                 # Pinned dependencies
-├── deploy-config.sample.yaml        # Sample configuration
 └── README.md                        # This file
 ```
 

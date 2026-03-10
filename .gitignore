@@ -1,4 +1,6 @@
 # Azure Local Deploy – ignore rules
+
+# Python bytecode & packaging
 __pycache__/
 *.pyc
 *.pyo
@@ -7,12 +9,35 @@ dist/
 build/
 .eggs/
 *.egg
+
+# Virtual environments
 .venv/
 venv/
 env/
+
+# Secrets & local config
 .env
 deploy-config.yaml
+add-node-test-config.yaml
+
+# Logs
 *.log
+
+# Linting / testing caches
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+
+# Dell firmware binaries (DUPs) & EXE files
+*.EXE
+*.exe
+dups/*.EXE
+dups/*.exe
+dups/*.gz
+
+# OS / editor artifacts
+*.iso
+Thumbs.db
+.DS_Store
+*.swp
+*~

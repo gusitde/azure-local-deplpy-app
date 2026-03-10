@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 
-from azure.identity import DefaultAzureCredential
+from azure_local_deploy.azure_auth import get_credential
 from azure.mgmt.authorization import AuthorizationManagementClient
 
 from azure_local_deploy.utils import get_logger
@@ -150,7 +150,7 @@ def validate_permissions(
     log.info("[bold]== Validate Azure RBAC Permissions ==[/]")
     _cb("Validating Azure RBAC permissions …")
 
-    credential = DefaultAzureCredential()
+    credential = get_credential()
     auth_client = AuthorizationManagementClient(credential, subscription_id)
 
     # Build scope strings

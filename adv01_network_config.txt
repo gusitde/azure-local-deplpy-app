@@ -1,0 +1,165 @@
+﻿=== HOSTNAME ===
+adv01
+
+=== OS VERSION ===
+Microsoft Azure Stack HCI
+
+=== PHYSICAL NETWORK ADAPTERS ===
+
+Name  InterfaceDescription                       Status MacAddress        LinkS
+                                                                          peed 
+----  --------------------                       ------ ----------        -----
+Port1 Mellanox ConnectX-4 Lx Ethernet Adapter    Up     98-03-9B-C4-4A-BF 25...
+Port0 Mellanox ConnectX-4 Lx Ethernet Adapter #2 Up     98-03-9B-C4-4A-BE 25...
+
+
+
+
+=== ALL NETWORK ADAPTERS ===
+
+Name                                    InterfaceDescription                   
+----                                    --------------------                   
+vManagement(compute_management_storage) Hyper-V Virtual Ethernet Adapter       
+Port1                                   Mellanox ConnectX-4 Lx Ethernet Adapter
+Port0                                   Mellanox ConnectX-4 Lx Ethernet Adap...
+vSMB(compute_management_storage#Port0)  Hyper-V Virtual Ethernet Adapter #2    
+
+
+
+
+=== IP ADDRESSES (IPv4) ===
+
+InterfaceAlias                          IPAddress     PrefixLength
+--------------                          ---------     ------------
+vSMB(compute_management_storage#Port0)  10.71.1.124             24
+vManagement(compute_management_storage) 192.168.1.30            24
+vManagement(compute_management_storage) 192.168.1.21            24
+Local Area Connection* 1                169.254.71.83           16
+Local Area Connection* 1                169.254.1.151           16
+Port1                                   192.168.1.102           24
+
+
+
+
+=== DEFAULT GATEWAY ===
+
+InterfaceAlias                          NextHop      RouteMetric
+--------------                          -------      -----------
+Port1                                   192.168.1.99           0
+vManagement(compute_management_storage) 192.168.1.99         256
+
+
+
+
+=== DNS SERVERS ===
+
+InterfaceAlias                          ServerAddresses               
+--------------                          ---------------               
+Port1                                   {192.168.1.254, 192.168.1.253}
+vManagement(compute_management_storage) {192.168.1.253}               
+
+
+
+
+=== VLAN IDs (Advanced Property) ===
+
+Name  DisplayValue
+----  ------------
+Port1 0           
+Port0 0           
+
+
+
+
+=== NET INTENT (HCI Network Intent) ===
+
+
+AdapterAdvancedParametersOverride : FabricManager.NetAdapterAdvancedConfigurati
+                                    on
+RssConfigOverride                 : FabricManager.RssConfiguration
+QosPolicyOverride                 : FabricManager.QoSPolicy
+SwitchConfigOverride              : FabricManager.SwitchConfigurationOverride
+IPOverride                        : FabricManager.NetAdapterStorageOverride
+SiteOverrides                     : 
+NetAdapterNameCsv                 : Port0
+StorageVLANs                      : {711}
+StorageSubnets                    : 
+ManagementVLAN                    : 0
+NetAdapterNamesAsList             : {Port0}
+SwitchlessMapping                 : 
+NetAdapterCommonProperties        : FabricManager.NetAdapterSymmetry
+ResourceContentVersion            : 1
+IntentName                        : compute_management_storage
+Scope                             : Cluster
+IntentType                        : 14
+IsComputeIntentSet                : True
+IsStorageIntentSet                : True
+IsOnlyStorage                     : False
+IsOnlyStorageSwitchless           : False
+IsManagementIntentSet             : True
+IsStretchIntentSet                : False
+IsOnlyStretch                     : False
+IsSwitchlessIntentSet             : False
+IsNetworkIntentType               : True
+InstanceId                        : 11881d56-e650-4798-9a26-5ee97b741f6c
+ObjectVersion                     : 1.0.0.10
+
+
+
+
+
+=== VIRTUAL SWITCHES ===
+
+Name                                        SwitchType NetAdapterInterfaceDescr
+                                                       iption                  
+----                                        ---------- ------------------------
+ConvergedSwitch(compute_management_storage)   External Teamed-Interface        
+
+
+
+
+=== HOST vNICs ===
+
+Name                                    SwitchName                             
+----                                    ----------                             
+vSMB(compute_management_storage#Port0)  ConvergedSwitch(compute_management_s...
+vManagement(compute_management_storage) ConvergedSwitch(compute_management_s...
+
+
+
+
+=== STORAGE / SMB NICs ===
+
+InterfaceAlias                          IPAddress    PrefixLength
+--------------                          ---------    ------------
+vSMB(compute_management_storage#Port0)  10.71.1.124            24
+vManagement(compute_management_storage) 192.168.1.30           24
+vManagement(compute_management_storage) 192.168.1.21           24
+
+
+
+
+=== CLUSTER INFO ===
+Cluster Name: fl-small-gpu
+
+Name  State
+----  -----
+adv01    Up
+
+
+
+
+Name                                        Address     AddressMask        Role
+----                                        -------     -----------        ----
+compute_management_storage(Management)      192.168.1.0 255.255.255.0 ...Client
+compute_management_storage(Storage_VLAN711) 10.71.1.0   255.255.255.0   Cluster
+
+
+
+
+=== NIC TEAMING ===
+
+
+=== SET (Switch Embedded Teaming) ===
+Switch: ConvergedSwitch(compute_management_storage)
+  Team Members: Mellanox ConnectX-4 Lx Ethernet Adapter #2

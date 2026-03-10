@@ -136,11 +136,21 @@ class IdracClient:
         collection = self.get("/Managers/iDRAC.Embedded.1/VirtualMedia")
         return collection.get("Members", [])
 
-    def insert_virtual_media(self, iso_url: str, slot: str = "CD") -> None:
-        """Mount an ISO via the virtual-media slot (default CD)."""
+    def insert_virtual_media(self, iso_url: str, slot: str = "CD",
+                             cifs_creds: dict | None = None) -> None:
+        """Mount an ISO via the virtual-media slot (default CD).
+
+        Parameters
+        ----------
+        cifs_creds:
+            Optional dict with ``UserName`` and ``Password`` for CIFS shares.
+        """
         path = f"/Managers/iDRAC.Embedded.1/VirtualMedia/{slot}/Actions/VirtualMedia.InsertMedia"
         log.info("Inserting virtual media [cyan]%s[/] into slot %s on %s", iso_url, slot, self.host)
-        self.post(path, {"Image": iso_url, "Inserted": True, "WriteProtected": True})
+        payload: dict[str, Any] = {"Image": iso_url, "Inserted": True, "WriteProtected": True}
+        if cifs_creds:
+            payload.update(cifs_creds)
+        self.post(path, payload)
 
     def eject_virtual_media(self, slot: str = "CD") -> None:
         path = f"/Managers/iDRAC.Embedded.1/VirtualMedia/{slot}/Actions/VirtualMedia.EjectMedia"
@@ -174,12 +184,13 @@ class IdracClient:
         deadline = time.time() + timeout
         while time.time() < deadline:
             task = self.get(task_uri)
-            state = task.get("TaskState", "Unknown")
+            # Dell OEM Jobs use "JobState"; standard Redfish uses "TaskState"
+            state = task.get("TaskState") or task.get("JobState", "Unknown")
             pct = task.get("PercentComplete", "?")
             log.info("  Task %s – state=%s  progress=%s%%", task_uri, state, pct)
             if state in ("Completed", "CompletedOK"):
                 return task
-            if state in ("Exception", "Killed"):
+            if state in ("Exception", "Killed", "Failed"):
                 raise RuntimeError(f"Task {task_uri} failed: {task}")
             time.sleep(interval)
         raise TimeoutError(f"Task {task_uri} did not complete within {timeout}s")

@@ -42,8 +42,9 @@ import json as _json
 import time
 from typing import Any, Callable
 
-from azure.identity import DefaultAzureCredential
 from azure.mgmt.azurestackhci import AzureStackHCIClient
+
+from azure_local_deploy.azure_auth import get_credential
 
 from azure_local_deploy.idrac_client import IdracClient
 from azure_local_deploy.deploy_os import deploy_os_image
@@ -97,7 +98,7 @@ def add_node_to_cluster(
     log.info("[bold]== Stage: Add Node to Cluster ==[/]")
 
     # Authenticate
-    credential = DefaultAzureCredential()
+    credential = get_credential()
     hci_client = AzureStackHCIClient(credential, subscription_id)
 
     # Validate node readiness
@@ -262,8 +263,8 @@ def run_add_node_pipeline(
             subscription_id=azure_cfg["subscription_id"],
             resource_group=azure_cfg["resource_group"],
         )
-        if not perm_report.all_ok:
-            missing = [c.role_name for c in perm_report.checks if not c.assigned]
+        if not perm_report.ok:
+            missing = [c.role_name for c in perm_report.checks if not c.found]
             _cb(f"⚠ Missing roles: {', '.join(missing)}")
             if global_cfg.get("abort_on_validation_failure", True):
                 raise RuntimeError(f"Missing RBAC roles: {', '.join(missing)}")
@@ -396,6 +397,8 @@ def run_add_node_pipeline(
         iso_url = server.get("iso_url") or global_cfg.get("iso_url", "")
         if iso_url:
             _cb(f"Stage 6/{TOTAL}: deploy_os – {server['idrac_host']} …")
+            cifs_user = server.get("cifs_user") or global_cfg.get("cifs_user", "")
+            cifs_password = server.get("cifs_password") or global_cfg.get("cifs_password", "")
             with IdracClient(server["idrac_host"], server["idrac_user"],
                              server["idrac_password"]) as idrac:
                 deploy_os_image(
@@ -406,6 +409,8 @@ def run_add_node_pipeline(
                     host_password=host_password,
                     install_timeout=int(server.get("install_timeout", 3600)),
                     ssh_port=ssh_port,
+                    cifs_user=cifs_user,
+                    cifs_password=cifs_password,
                 )
             _cb("OS deployment complete ✔")
         else:

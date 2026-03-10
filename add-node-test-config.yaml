@@ -1,0 +1,72 @@
+# ═══════════════════════════════════════════════════════════════════
+# Add Node Configuration: adv02 → fl-small-gpu cluster
+# Target: Expand 1-node (adv01) to 2-node cluster
+# Date: 2026-03-09
+# ═══════════════════════════════════════════════════════════════════
+
+global:
+  iso_url: "C:\\Users\\gus\\.azure-local-deploy\\AzureLocal24H2.26100.1742.LCM.12.2602.0.3018.x64.en-us.iso"
+  cifs_user: "gus@worldai.local"
+  cifs_password: "Tricolor00!@#$%^&*("
+  ntp_servers:
+    - time.windows.com
+  timezone: "UTC"
+  sbe_source: ""
+  abort_on_validation_failure: false     # Continue on non-critical failures
+
+azure:
+  tenant_id: "11b44c5d-c0e8-42cd-bb53-dd6fe967f68a"
+  subscription_id: "a16d84c5-15b4-4f50-a06c-5e5064d9345c"
+  resource_group: "rg-avd-1node-gpu"
+  region: "eastus"
+
+# ── New node to add ──────────────────────────────────────────────
+servers:
+  - idrac_host: "192.168.10.5"
+    idrac_user: "root"
+    idrac_password: "Tricolor00!"
+    host_ip: "192.168.1.32"              # OS management IP for adv02
+    host_user: "Administrator"
+    host_password: "Tricolor00!@#$"
+    hostname: "adv02"
+    ssh_port: 5985                         # WinRM direct (SSH port 22 closed)
+    install_timeout: 3600
+
+    # NIC configuration - matching adv01 layout
+    # adv01 uses: Port0 (Mellanox ConnectX-4 Lx) in converged intent
+    # adv02 has:  Mellanox 25GbE 2P ConnectX-4 Lx (Slot 2) + Broadcom 2P 25G rNDC (integrated)
+    # Mellanox MACs not available via iDRAC - will be configured after OS install
+    # Broadcom integrated NICs:
+    #   NIC.Integrated.1-1-1: MAC=00:0A:F7:F5:00:10
+    #   NIC.Integrated.1-2-1: MAC=00:0A:F7:F5:00:11
+    # Mellanox slot NICs (MACs TBD after OS install):
+    #   NIC.Slot.2-1-1: MAC=?
+    #   NIC.Slot.2-2-1: MAC=?
+    nics: []                             # Will be populated after OS install with actual MACs
+
+# ── Add-node pipeline settings ───────────────────────────────────
+add_node:
+  existing_cluster_name: "fl-small-gpu"
+  existing_cluster_resource_group: "rg-avd-1node-gpu"
+  existing_node:
+    host: "adv01.worldai.local"          # FQDN for Kerberos auth (WinRM fallback)
+    user: "worldai\\gus-admin"           # Domain admin account
+    password: "Tricolor00!@#$%^&*("
+    ssh_port: 5985                       # WinRM direct (SSH port 22 closed on adv01)
+
+# ── Network reference from adv01 ────────────────────────────────
+# Intent: compute_management_storage (converged: compute + management + storage)
+# Adapter in intent: Port0 (single Mellanox ConnectX-4 Lx)
+# Virtual switch: ConvergedSwitch(compute_management_storage) - External, SET
+# Management VLAN: 0 (untagged)
+# Storage VLAN: 711
+# Management subnet: 192.168.1.0/24, gateway: 192.168.1.99
+# Storage subnet: 10.71.1.0/24
+# DNS: 192.168.1.253, 192.168.1.254
+# Cluster networks:
+#   - compute_management_storage(Management): 192.168.1.0/24 (ClusterAndClient)
+#   - compute_management_storage(Storage_VLAN711): 10.71.1.0/24 (Cluster only)
+
+validation:
+  run_pre_flight: true
+  abort_on_failure: false

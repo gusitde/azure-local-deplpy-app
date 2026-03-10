@@ -59,7 +59,7 @@ AZURE_LOCAL_BIOS_DEFAULTS: dict[str, str] = {
     "BootMode": "Uefi",
 
     # TPM
-    "TpmSecurity": "OnPbm",              # On with Pre-boot Measurement
+    "TpmSecurity": "On",                 # On (R640: only On/Off; newer: OnPbm)
     "TpmActivation": "Enabled",
     "Tpm2Hierarchy": "Enabled",
     "TpmPpiBypassProvision": "Enabled",   # avoid physical-presence prompts
@@ -99,6 +99,61 @@ class BiosProfile:
 def get_current_bios(idrac: IdracClient) -> dict[str, Any]:
     """Return current BIOS attributes from the server."""
     return idrac.get_bios_attributes()
+
+
+def _get_bios_registry(idrac: IdracClient) -> dict[str, dict[str, Any]]:
+    """Fetch the BIOS attribute registry and index by attribute name.
+
+    Returns a dict mapping attribute name to its registry entry (including
+    ``ReadOnly``, ``Value`` list, etc.).
+    """
+    try:
+        reg_data = idrac.get("/Systems/System.Embedded.1/Bios/BiosRegistry")
+        entries = reg_data.get("RegistryEntries", {}).get("Attributes", [])
+        return {e["AttributeName"]: e for e in entries if "AttributeName" in e}
+    except Exception as exc:
+        log.warning("Could not fetch BIOS attribute registry: %s", exc)
+        return {}
+
+
+def _filter_writable_attrs(
+    desired: dict[str, str],
+    registry: dict[str, dict[str, Any]],
+) -> tuple[dict[str, str], list[str]]:
+    """Remove attributes that are read-only or have invalid desired values.
+
+    Returns (filtered_desired, skipped_reasons) where *skipped_reasons* is a
+    list of human-readable messages for each attribute dropped.
+    """
+    if not registry:
+        return desired, []  # no registry → optimistic attempt
+
+    filtered: dict[str, str] = {}
+    skipped: list[str] = []
+
+    for attr, val in desired.items():
+        entry = registry.get(attr)
+        if entry is None:
+            # Attribute not in registry – skip silently (not on this platform)
+            continue
+
+        # Check read-only
+        if entry.get("ReadOnly", False):
+            skipped.append(f"{attr}: read-only (controlled by another setting)")
+            continue
+
+        # Check valid values for Enumeration type
+        if entry.get("Type") == "Enumeration":
+            valid = {v["ValueName"] for v in entry.get("Value", [])}
+            if valid and val not in valid:
+                skipped.append(
+                    f"{attr}: desired '{val}' not in valid values {sorted(valid)}"
+                )
+                continue
+
+        filtered[attr] = val
+
+    return filtered, skipped
 
 
 def compare_bios(
@@ -222,10 +277,20 @@ def configure_bios(
     _cb(f"Reading current BIOS settings from {idrac.host}")
     current = get_current_bios(idrac)
 
+    # -- Fetch registry & filter out read-only / invalid attrs -----------
+    _cb(f"Checking BIOS attribute registry on {idrac.host}")
+    registry = _get_bios_registry(idrac)
+    desired, skipped = _filter_writable_attrs(desired, registry)
+    for msg in skipped:
+        log.warning("Skipping BIOS attribute: %s", msg)
+    if skipped:
+        _cb(f"Skipped {len(skipped)} read-only/invalid BIOS attribute(s)")
+
     # -- Compare -----------------------------------------------------------
     mismatched, already_ok = compare_bios(current, desired)
     result["unchanged"] = already_ok
     result["changed"] = {k: {"from": v[0], "to": v[1]} for k, v in mismatched.items()}
+    result["skipped"] = skipped
 
     if not mismatched:
         log.info("[green]All %d BIOS attributes already match on %s[/]", len(already_ok), idrac.host)
@@ -234,6 +299,10 @@ def configure_bios(
 
     log.info("[yellow]%d BIOS attributes need changing on %s[/]", len(mismatched), idrac.host)
     _cb(f"{len(mismatched)} BIOS attribute(s) to change on {idrac.host}")
+
+    # -- Clear any stale iDRAC jobs before patching ----------------------
+    _cb(f"Clearing iDRAC job queue on {idrac.host}")
+    _clear_job_queue(idrac)
 
     # -- Patch pending settings -------------------------------------------
     attrs_to_set = {k: v[1] for k, v in mismatched.items()}
@@ -283,6 +352,19 @@ def configure_bios(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _clear_job_queue(idrac: IdracClient) -> None:
+    """Clear the iDRAC job queue to avoid stale-job conflicts."""
+    try:
+        idrac.post(
+            "/Managers/iDRAC.Embedded.1/Oem/Dell/DellJobService/Actions/DellJobService.DeleteJobQueue",
+            {"JobID": "JID_CLEARALL"},
+        )
+        log.info("iDRAC job queue cleared on %s", idrac.host)
+        time.sleep(5)  # Give iDRAC a moment to settle
+    except Exception as exc:
+        log.warning("Could not clear iDRAC job queue: %s", exc)
+
 
 def _wait_for_host_ready(idrac: IdracClient, timeout: int = 600) -> None:
     """Wait until the server reports PowerState == On after a reboot."""
